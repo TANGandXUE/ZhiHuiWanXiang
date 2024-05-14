@@ -19,9 +19,10 @@ export class UploadController {
     @UseInterceptors(FilesInterceptor('pic'))
     uploadFiles(@Body() body, @UploadedFiles() files) {
 
+        //写入文件，返回文件信息
         var fileInfo = this.uploadService.writeFiles(files);
 
-        //写入数据库中
+        //写入数据库
         this.sqlService.addFile(fileInfo)
 
         // res.redirect('/user');

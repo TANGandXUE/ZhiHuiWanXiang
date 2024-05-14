@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, getMetadataArgsStorage } from 'typeorm';
 import { UserUpload } from 'src/entities/userupload.entity';
 
 @Injectable()
@@ -22,7 +22,16 @@ export class SqlService {
             userUpload.userId = 0;
             this.userUploadRepository.save(userUpload);
 
+            const columns = getMetadataArgsStorage().columns.filter(c => c.target === UserUpload);
+
+            console.log("UserUpload中的Columns:");
+            columns.forEach(c => {
+                console.log(c.propertyName);
+            });
         }
+
+        
+
     }
 
 }
