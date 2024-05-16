@@ -9,7 +9,7 @@ import { TestController } from './controller/test/test.controller';
 @Module({
     imports: [TypeOrmModule.forFeature([UserUpload])],
     providers: [SqlService, OssService],
-    exports: [SqlService],
+    exports: [SqlService, OssService],
     controllers: [TestController]
 
 })

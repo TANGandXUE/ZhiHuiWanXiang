@@ -22,7 +22,7 @@ export class OssService {
                 for(const fileInfo of fileInfos){
                     // 上传文件到OSS，'object'是OSS中的文件名，'localfile'是本地文件的路径。
                     const uploadResult = await this.client.put(fileInfo.fileName, fileInfo.filePath);
-                    console.log('上传文件到OSS成功:', uploadResult);
+                    // console.log('上传文件到OSS成功:', uploadResult);
                 }
             } 
             catch (error) 
@@ -64,6 +64,51 @@ export class OssService {
         }
 
         return downloadFileInfos;
+    }
+
+
+    // 判断文件是否存在
+    async isExistObject(name: string) {
+        try {
+            await this.client.head(name);
+            console.log('文件存在')
+
+            return true;
+         }  catch (error) {
+            if (error.code === 'NoSuchKey') {
+              console.log('文件不存在')
+              return false;
+            }
+            console.log('异常错误：', error);
+            return false;
+         }
+      }
+
+
+    // 在UploadController类内添加reNameFileInfos函数
+    async reNameFileInfos(fileInfos: any[]): Promise<any[]> {
+        const NoRenameFileInfos: any[] = []; // 初始化不重命名的文件信息数组
+        for (const fileInfo of fileInfos) {
+            let fileName = fileInfo.fileName;
+            let suffix = 1; // 初始化后缀为1，避免使用字符串操作
+
+            // 循环直到找到一个唯一的文件名
+            while (true) {
+                const exists = await this.isExistObject(fileName); // 检查文件名是否存在
+                if (!exists) {
+                    // 如果文件名不存在，则跳出循环
+                    break;
+                }
+                // 文件名存在，增加后缀并尝试下一个
+                fileName = `${fileInfo.fileName.split('.')[0]}-${suffix}.${fileInfo.fileName.split('.')[1]}`; // 保持原始文件扩展名，并添加后缀
+                suffix++; // 直接递增后缀，不需要检查是否为'-1'
+            }
+
+            // 将处理后的文件名与原filePath组合成新对象，并push进NoRenameFileInfos
+            NoRenameFileInfos.push({ fileName, filePath: fileInfo.filePath });
+        }
+
+        return NoRenameFileInfos;
     }
 
 }

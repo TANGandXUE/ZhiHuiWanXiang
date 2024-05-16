@@ -6,7 +6,7 @@ export class TestController {
     constructor(private readonly ossService: OssService) { }
 
     @Get('oss-upload')
-    ossUploadTest() {
+    async ossUploadTest() {
 
         const fileInfos = [
             {
@@ -19,7 +19,7 @@ export class TestController {
             }
         ];
 
-        this.ossService.uploadFiles(fileInfos);
+        await this.ossService.uploadFiles(fileInfos);
     }
 
     @Get('oss-download')
@@ -40,5 +40,7 @@ export class TestController {
 
         console.log(downloadFileInfos);
     }
+
+    // @Get('oss-fileExist')
 
 }
