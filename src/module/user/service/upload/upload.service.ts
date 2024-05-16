@@ -1,32 +1,49 @@
 import { Injectable } from '@nestjs/common';
-import { createWriteStream } from 'fs';
+import { createWriteStream, promises as fsPromises } from 'fs';
 import { join } from 'path';
-// import { fileTypeFromFile } from 'file-type'; // 引入file-type库来检测文件类型
-
-// // 动态引入 file-type 库
-// const fileTypeFromFile = async (filePath: string) => {
-//     const { fileTypeFromFile } = await import('file-type');
-//     return fileTypeFromFile(filePath);
-// };
 
 @Injectable()
 export class UploadService {
-
     private fileInfos: Array<{ fileName: string, filePath: string }> = [];
 
     // 写入文件并返回文件信息
-    writeFiles(files): Array<{ fileName: string, filePath: string }> {
+    async writeFiles(files): Promise<Array<{ fileName: string, filePath: string }>> {
+        const fileInfos = [];
 
         for (const file of files) {
             const filePath = join(__dirname, '../../../../../public/user/upload', `${Date.now()}-${file.originalname}`);
 
-            console.log(file.originalname + ' ' + filePath)
+            console.log(`开始写入文件: ${filePath}`);
 
-            var writeStream = createWriteStream(filePath);
+            const writeStream = createWriteStream(filePath);
             writeStream.write(file.buffer);
-            this.fileInfos.push({ fileName: file.originalname, filePath });
+
+            // 使用 writeStream.write 的返回结果来确保缓冲区中的数据已经被处理
+            if (!writeStream.write(file.buffer)) {
+                await new Promise((resolve) => writeStream.once('drain', resolve));
+            }
+
+            // 关闭流
+            writeStream.end();
+
+            // 添加'finish'事件监听器，等待文件写入完成
+            await new Promise((resolve, reject) => {
+                writeStream.on('finish', () => {
+                    console.log(`文件写入完成: ${filePath}`);
+                    resolve(undefined);
+                });
+
+                // 添加错误处理
+                writeStream.on('error', (error) => {
+                    console.error(`文件写入错误: ${filePath}`, error);
+                    reject(error);
+                });
+            });
+
+            fileInfos.push({ fileName: file.originalname, filePath });
         }
 
-        return this.fileInfos;
+        this.fileInfos = fileInfos;
+        return fileInfos;
     }
 }

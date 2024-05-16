@@ -1,4 +1,11 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Render } from '@nestjs/common';
 
 @Controller('download')
-export class DownloadController {}
+export class DownloadController {
+
+    @Get()
+    @Render('user/upload')
+    download() {
+        
+    }
+}

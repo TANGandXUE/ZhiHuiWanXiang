@@ -25,5 +25,6 @@ import { SqlModule } from './module/sql/sql.module';
   ],
   controllers: [AppController],
   providers: [AppService, DatatransService],
+  exports: [DatatransService],
 })
 export class AppModule {}

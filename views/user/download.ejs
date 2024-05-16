@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>userdownload</title>
+    <!-- 添加样式表链接，用于显示图片和按钮样式 -->
+    <style>
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .download-btn {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <% // 假设图片数据在服务器端通过一个变量传递过来，例如：images %>
+    <% if (images && images.length > 0) { %>
+        <% for (let i = 0; i < images.length; i++) { %>
+            <img src="data:<%= images[i].contentType %>;base64,<%= images[i].base64String %>" alt="Generated Image <%= i + 1 %>">
+        <% } %>
+    <% } %>
+
+    <a class="download-btn" href="/upload">返回上传页面</a>
+
+</body>
+
+</html>

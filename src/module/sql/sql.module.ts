@@ -2,12 +2,15 @@ import { Module } from '@nestjs/common';
 import { SqlService } from './service/sql/sql.service';
 import { UserUpload } from '../../entities/userupload.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { OssService } from './service/oss/oss.service';
+import { TestController } from './controller/test/test.controller';
 
 
 @Module({
     imports: [TypeOrmModule.forFeature([UserUpload])],
-    providers: [SqlService],
-    exports: [SqlService]
+    providers: [SqlService, OssService],
+    exports: [SqlService],
+    controllers: [TestController]
 
 })
 export class SqlModule {
