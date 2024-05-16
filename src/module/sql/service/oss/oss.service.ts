@@ -9,8 +9,8 @@ export class OssService {
     // 初始化OSS客户端。请将以下参数替换为您自己的配置信息。
     client = new OSS({
         region: 'oss-cn-shanghai', // 示例：'oss-cn-hangzhou'，填写Bucket所在地域。
-        accessKeyId: 'LTAI5tLYor62Eq4DtsMWpdUc', // 确保已设置环境变量OSS_ACCESS_KEY_ID。
-        accessKeySecret: 'WmC1ESz5fKhxi8ktCqyqs1QQWGItTd', // 确保已设置环境变量OSS_ACCESS_KEY_SECRET。
+        accessKeyId: '', // 确保已设置环境变量OSS_ACCESS_KEY_ID。
+        accessKeySecret: '', // 确保已设置环境变量OSS_ACCESS_KEY_SECRET。
         bucket: 'clouddreamai', // 示例：'my-bucket-name'，填写存储空间名称。
     });
 
