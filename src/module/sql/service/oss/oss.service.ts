@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as OSS from 'ali-oss';
+import * as dotenv from 'dotenv';
+dotenv.config();
 import { promisify } from 'util'; // 引入promisify用于转换异步回调函数为Promise
 const writeFile = promisify(require('fs').writeFile); // 将writeFile转换为Promise版本
 
@@ -8,10 +10,10 @@ export class OssService {
 
     // 初始化OSS客户端。请将以下参数替换为您自己的配置信息。
     client = new OSS({
-        region: 'oss-cn-shanghai', // 示例：'oss-cn-hangzhou'，填写Bucket所在地域。
-        accessKeyId: 'LTAI5tLYor62Eq4DtsMWpdUc', // 确保已设置环境变量OSS_ACCESS_KEY_ID。
-        accessKeySecret: 'WmC1ESz5fKhxi8ktCqyqs1QQWGItTd', // 确保已设置环境变量OSS_ACCESS_KEY_SECRET。
-        bucket: 'clouddreamai', // 示例：'my-bucket-name'，填写存储空间名称。
+        region: process.env.OSS_REGION, // 示例：'oss-cn-hangzhou'，填写Bucket所在地域。
+        accessKeyId: process.env.OSS_ACCESS_KEY_ID, // 确保已设置环境变量OSS_ACCESS_KEY_ID。
+        accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET, // 确保已设置环境变量OSS_ACCESS_KEY_SECRET。
+        bucket: process.env.OSS_BUCKET, // 示例：'my-bucket-name'，填写存储空间名称。
     });
 
     //上传文件到OSS

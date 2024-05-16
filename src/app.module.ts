@@ -6,16 +6,18 @@ import { ApiModule } from './module/api/api.module';
 import { DatatransService } from './service/datatrans/datatrans.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SqlModule } from './module/sql/sql.module';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Module({
   imports: [UserModule, ApiModule,
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'rm-cn-o493neqr4000ml0o.rwlb.rds.aliyuncs.com',
-      port: 3306,
-      username: 'root',
-      password: 'Heyi3131',
-      database: 'draweverything',
+      host: process.env.MYSQL_HOST,
+      port: Number(process.env.MYSQL_PORT),
+      username: process.env.MYSQL_USERNAME,
+      password: process.env.MYSQL_PASSWORD,
+      database: process.env.MYSQL_DATABASE,
       retryDelay: 500,
       retryAttempts: 10,
       synchronize: true,
