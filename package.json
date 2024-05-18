@@ -21,6 +21,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@alicloud/imageenhan20190930": "^2.0.9",
+    "@alicloud/openapi-client": "^0.4.9",
+    "@alicloud/tea-util": "^1.4.8",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.3.8",

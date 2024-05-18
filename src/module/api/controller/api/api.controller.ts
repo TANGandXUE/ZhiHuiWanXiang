@@ -11,7 +11,7 @@ export class ApiController {
         private readonly datatransService: DatatransService
     ) { }
 
-    @Get('test')
+    @Get('test-meitu-filter')
     async test() {
         try {
             const result = await this.uploadService
@@ -51,4 +51,15 @@ export class ApiController {
             return '操作失败';
         }
     }
+
+    @Get('test-ali-imageenhan')
+    async imageenhan(){
+        console.log( await this.uploadService.ali_imageEnhan(
+            [{
+                fileName: 'new.jpg',
+            }],
+            "png"
+        ))
+    }
+
 }

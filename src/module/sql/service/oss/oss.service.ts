@@ -85,7 +85,7 @@ export class OssService {
       }
 
 
-    // 在UploadController类内添加reNameFileInfos函数
+    // 重命名重名的文件
     async reNameFileInfos(fileInfos: any[]): Promise<any[]> {
         const NoRenameFileInfos: any[] = []; // 初始化不重命名的文件信息数组
         for (const fileInfo of fileInfos) {

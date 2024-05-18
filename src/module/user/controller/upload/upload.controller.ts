@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Render, Req, UploadedFiles, UseInterceptor
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '../../service/upload/upload.service';
 import { SqlService } from '../../../sql/service/sql/sql.service';
-// import { UploadService as ApiUploadService } from 'src/module/api/service/upload/upload.service';
+import { UploadService as ApiUploadService } from 'src/module/api/service/upload/upload.service';
 // import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { OssService } from 'src/module/sql/service/oss/oss.service';
 
@@ -11,7 +11,7 @@ export class UploadController {
     constructor(
         private uploadService: UploadService,
         private sqlService: SqlService,
-        // private apiUploadService: ApiUploadService,
+        private apiUploadService: ApiUploadService,
         // private datatransService: DatatransService,
         private ossService: OssService
     ) { }
@@ -41,13 +41,19 @@ export class UploadController {
 
         // console.log('2');
 
-        //写入数据库
-        this.sqlService.uploadFiles(fileInfos);
+        // //写入数据库
+        // this.sqlService.uploadFiles(fileInfos);
 
+        //给重命名文件加后缀，防止覆盖上传
         let NoRenameFileInfos = await this.ossService.reNameFileInfos(fileInfos);
 
         //写入OSS
         this.ossService.uploadFiles( NoRenameFileInfos );
+
+        //调用阿里云图像增强API
+        let resultFileInfos = await this.apiUploadService.ali_imageEnhan(NoRenameFileInfos, "png");
+
+        console.log(resultFileInfos);
 
         // //将fileInfo单独取出，并转化成linux路径格式
         // let filePathList: string[] = this.datatransService.convertWindowsSlashes(fileInfos.map(item => item.filePath));
