@@ -58,4 +58,16 @@ export class TestController {
         ))
     }
 
+    @Get('img2png')
+    async img2png() {
+        console.log( await this.datatransService.convertToPng(
+            [
+                {
+                    fileName: '1715795679021-new2.jpg',
+                    filePath: 'public/user/upload/1715795679021-new2.jpg'
+                }
+            ]
+        ))
+    }
+
 }

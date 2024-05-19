@@ -22,7 +22,7 @@ export class OssService {
                 for(const fileInfo of fileInfos){
                     // 上传文件到OSS，'object'是OSS中的文件名，'localfile'是本地文件的路径。
                     const uploadResult = await this.client.put(fileInfo.fileName, fileInfo.filePath);
-                    // console.log('上传文件到OSS成功:', uploadResult);
+                    console.log('上传文件到OSS成功:', uploadResult);
                 }
             } 
             catch (error) 
@@ -76,7 +76,7 @@ export class OssService {
             return true;
          }  catch (error) {
             if (error.code === 'NoSuchKey') {
-              console.log('文件不存在')
+              console.log('文件不存在:', error)
               return false;
             }
             console.log('异常错误：', error);

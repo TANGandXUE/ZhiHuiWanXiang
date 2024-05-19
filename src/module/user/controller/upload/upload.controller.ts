@@ -39,8 +39,6 @@ export class UploadController {
         //写入文件，返回异步文件信息
         let fileInfos = await this.uploadService.writeFiles(files);
 
-        // console.log('2');
-
         // //写入数据库
         // this.sqlService.uploadFiles(fileInfos);
 
@@ -48,10 +46,10 @@ export class UploadController {
         let NoRenameFileInfos = await this.ossService.reNameFileInfos(fileInfos);
 
         //写入OSS
-        this.ossService.uploadFiles( NoRenameFileInfos );
+        await this.ossService.uploadFiles( NoRenameFileInfos );
 
         //调用阿里云图像增强API
-        let resultFileInfos = await this.apiUploadService.ali_imageEnhan(NoRenameFileInfos, "png");
+        let resultFileInfos = await this.apiUploadService.ali_imageEnhan(NoRenameFileInfos, "jpg");
 
         console.log(resultFileInfos);
 
