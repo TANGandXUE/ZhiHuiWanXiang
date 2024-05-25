@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import * as sharp from 'sharp';
 import * as fs from 'fs';
-import * as http from 'http';
-import * as https from 'https';
 import * as path from 'path';
+import axios from 'axios';
+import { promisify } from 'util';
 const CloudConvert = require('cloudconvert');
+const fsUnlink = promisify(fs.unlink);
 
 @Injectable()
 export class DatatransService {
@@ -35,60 +36,51 @@ export class DatatransService {
         return windowsPathArray.map(path => path.replace(/\\/g, '/'));
     }
 
-
     // fileInfos(含URL)转换成fileInfos(含本地路径)
     async urlToLocal(fileInfos_url: Array<{ fileName: string, fileURL: string }>, fileType: string): Promise<Array<{ fileName: string; filePath: string }>> {
-
         const downloadDir = 'public/user/download/';
         // 确保下载目录存在
         if (!fs.existsSync(downloadDir)) {
             fs.mkdirSync(downloadDir, { recursive: true });
         }
 
-        // 创建一个下载并保存文件的Promise数组
         const downloadPromises = fileInfos_url.map(async ({ fileName, fileURL }) => {
-            // if(fileURL.startsWith('https')){
-            //     fileURL.replace('https:', 'http:')
-            // }
-
-            // console.log('此处替换后的URL为: ', {fileName, fileURL});
-
             // 提取文件名和扩展名
             const baseNameWithoutExt = path.basename(fileName, path.extname(fileName));
-            console.log('baseNameWithoutExt: ', baseNameWithoutExt);
-            const localFilePath = `${downloadDir}${baseNameWithoutExt}.${fileType}`;
+            const localFilePath = path.join(downloadDir, `${baseNameWithoutExt}.${fileType}`);
 
-            return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
-            const file = fs.createWriteStream(localFilePath);
-
-            if(fileURL.startsWith('https')){
-                fileURL = fileURL.replace('https:', 'http:')
-            }
-
-            console.log('此处替换后的URL为: ', {fileName, fileURL});
-
-            http.get(fileURL, (response) => {
-                response.pipe(file);
-
-                file.on('finish', () => {
-                file.close();
-                resolve({ fileName, filePath: localFilePath });
+            try {
+                const response = await axios({
+                    method: 'GET',
+                    url: fileURL,
+                    responseType: 'stream',
+                    maxRedirects: 5, // 可以调整重定向的最大次数
                 });
-            }).on('error', (err) => {
-                fs.unlink(localFilePath, () => { }); // 删除已开始下载但未完成的文件
-                reject(err);
-            });
-            });
+
+                const file = fs.createWriteStream(localFilePath);
+
+                response.data.pipe(file);
+
+                await new Promise((resolve) => {
+                    file.on('finish', () => {
+                        file.close(resolve);
+                    });
+                });
+
+                return { fileName, filePath: localFilePath };
+            } catch (error) {
+                await fsUnlink(localFilePath); // 删除已开始下载但未完成的文件
+                throw error;
+            }
         });
 
         try {
-            // 等待所有文件下载完成
             const localFileInfos = await Promise.all(downloadPromises);
             console.log('localFileInfos: ', localFileInfos);
             return localFileInfos;
         } catch (error) {
             console.error('下载过程中发生错误:', error);
-            throw error; // 重新抛出错误，可以选择处理或直接抛给调用者
+            throw error;
         }
     }
 
