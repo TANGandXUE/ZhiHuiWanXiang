@@ -18,11 +18,16 @@ export class OssService {
 
     //上传文件到OSS
     async uploadFiles(fileInfos: Array<{ fileName: string, filePath: string }>){
+
+        let results_url = [];
+
         try {
                 for(const fileInfo of fileInfos){
                     // 上传文件到OSS，'object'是OSS中的文件名，'localfile'是本地文件的路径。
                     const uploadResult = await this.client.put(fileInfo.fileName, fileInfo.filePath);
-                    console.log('上传文件到OSS成功:', uploadResult);
+                    // console.log('上传文件到OSS成功:', uploadResult);
+
+                    results_url.push({fileName: fileInfo.fileName, fileURL: uploadResult.url});
                 }
             } 
             catch (error) 
@@ -30,6 +35,10 @@ export class OssService {
                 console.error('上传文件到OSS错误:', error);
                 // 在此处添加错误处理逻辑。
             }
+        
+        console.log('上传文件后的results_url: ', results_url);
+        return results_url;
+        
     }
 
     // 从OSS下载文件
@@ -44,6 +53,8 @@ export class OssService {
                 const getResult = await this.client.get(fileInfo.fileName);
                 // console.log('从OSS下载文件成功，Tag为: ', getResult.res.headers.etag);
                 // console.log('从OSS下载文件成功，buffer为: ', getResult.res.data);
+
+                console.log('getResult', getResult);``
 
                 const currentDate = new Date().toISOString().split('T')[0].replace(/-/g, '-');
                 const localFilePath = `public/sql/oss/${currentDate}-${fileInfo.fileName}.jpeg`;
@@ -71,15 +82,15 @@ export class OssService {
     async isExistObject(name: string) {
         try {
             await this.client.head(name);
-            console.log('文件存在')
+            // console.log('文件存在')
 
             return true;
          }  catch (error) {
             if (error.code === 'NoSuchKey') {
-              console.log('文件不存在:', error)
+            //   console.log('文件不存在:', error)
               return false;
             }
-            console.log('异常错误：', error);
+            console.log('判断文件是否存在时抛出异常错误：', error);
             return false;
          }
       }

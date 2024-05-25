@@ -3,8 +3,10 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '../../service/upload/upload.service';
 import { SqlService } from '../../../sql/service/sql/sql.service';
 import { UploadService as ApiUploadService } from 'src/module/api/service/upload/upload.service';
-// import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { OssService } from 'src/module/sql/service/oss/oss.service';
+import { DatatransService } from 'src/service/datatrans/datatrans.service';
+// import { Params } from '@alicloud/openapi-client';
+
 
 @Controller('/user/upload')
 export class UploadController {
@@ -12,7 +14,7 @@ export class UploadController {
         private uploadService: UploadService,
         private sqlService: SqlService,
         private apiUploadService: ApiUploadService,
-        // private datatransService: DatatransService,
+        private datatransService: DatatransService,
         private ossService: OssService
     ) { }
 
@@ -39,6 +41,8 @@ export class UploadController {
         //写入文件，返回异步文件信息
         let fileInfos = await this.uploadService.writeFiles(files);
 
+        // fileInfos_url: fileName, fileURL
+
         // //写入数据库
         // this.sqlService.uploadFiles(fileInfos);
 
@@ -46,12 +50,54 @@ export class UploadController {
         let NoRenameFileInfos = await this.ossService.reNameFileInfos(fileInfos);
 
         //写入OSS
-        await this.ossService.uploadFiles( NoRenameFileInfos );
+        let fileInfos_url = await this.ossService.uploadFiles( NoRenameFileInfos );
 
-        //调用阿里云图像增强API
-        let resultFileInfos = await this.apiUploadService.ali_imageEnhan(NoRenameFileInfos, "jpg");
+        let results_url = await this.datatransService.img2img(fileInfos_url, 
+            {
+                outputFormat : 'jpg',
+                quality: 100,
+            }
+        )
 
-        console.log(resultFileInfos);
+        console.log('此处的results_url: ', results_url);
+
+        // 当results_url有值后执行这里的代码
+        let resultFileInfos = await this.apiUploadService.ali_imageEnhan(
+            await this.ossService.uploadFiles(
+                await this.datatransService.urlToLocal(results_url, 'jpg')
+            ),'jpg'
+        );
+        console.log('resultFileInfos: ', resultFileInfos);
+
+        return '上传成功';
+
+
+
+
+        // async function processWhenUrlReady() {
+        //     while (!results_url) {
+        //         await new Promise(resolve => setTimeout(resolve, 5000)); // 等待5秒
+        //     }
+
+        //     console.log('processWhenUrlReady内部的results_url: ', results_url);
+
+        //     // 当results_url有值后执行这里的代码
+        //     let resultFileInfos = await this.apiUploadService.ali_imageEnhan(
+        //         await this.datatransService.urlToLocal(results_url, 'jpg'),
+        //         'jpg'
+        //     );
+        //     console.log('resultFileInfos: ', resultFileInfos);
+
+        //     return '上传成功';
+        // }
+
+        // // 调用此函数开始等待并处理
+        // processWhenUrlReady();
+
+        // //调用阿里云图像增强API
+        // let resultFileInfos = await this.apiUploadService.ali_imageEnhan(await this.datatransService.urlToLocal(results_url, 'jpg'),'jpg');
+
+        // console.log('resultFileInfos: ', resultFileInfos);
 
         // //将fileInfo单独取出，并转化成linux路径格式
         // let filePathList: string[] = this.datatransService.convertWindowsSlashes(fileInfos.map(item => item.filePath));
@@ -81,7 +127,7 @@ export class UploadController {
 
         // res.redirect('/user');
 
-        return '上传成功';
+        
     }
 
 }

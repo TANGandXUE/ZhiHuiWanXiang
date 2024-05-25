@@ -1,6 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Render, Res } from '@nestjs/common';
 import { OssService } from '../../service/oss/oss.service';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
+import { get } from 'http';
+import { resolve } from 'path';
 
 @Controller('sql/test')
 export class TestController {
@@ -63,11 +65,55 @@ export class TestController {
         console.log( await this.datatransService.convertToPng(
             [
                 {
-                    fileName: '1715795679021-new2.jpg',
-                    filePath: 'public/user/upload/1715795679021-new2.jpg'
+                    fileName: 's.webp',
+                    filePath: 'C:/Users/Administrator/Desktop/temp/s.webp'
                 }
             ]
         ))
     }
+
+    @Get('img2img')
+    async img2img() {
+        const taskId = Date.now().toString(); // 生成一个唯一的任务ID
+        this.datatransService.img2img(
+            [
+                {
+                    fileName: 'test.ARW',
+                    fileURL: 'http://clouddreamai.oss-cn-shanghai.aliyuncs.com/KKK02327.ARW'
+                },
+                {
+                    fileName: 'test2.ARW',
+                    fileURL: 'http://clouddreamai.oss-cn-shanghai.aliyuncs.com/KKK02327.ARW'
+                },
+                {
+                    fileName: 'test3.ARW',
+                    fileURL: 'http://clouddreamai.oss-cn-shanghai.aliyuncs.com/KKK02327.ARW'
+                },
+                {
+                    fileName: 'test4.ARW',
+                    fileURL: 'http://clouddreamai.oss-cn-shanghai.aliyuncs.com/KKK02327.ARW'
+                }
+                
+            ],
+            {
+                outputFormat: 'png',
+                quality: 100,
+            }
+        );
+    
+    }
+
+    @Get('url2local')
+    async url2local(){
+        console.log(await this.datatransService.urlToLocal(
+            [
+                {
+                    fileName: 'test-3.jpg',
+                    fileURL: 'http://us-east.storage.cloudconvert.com/tasks/5ca4358b-e52d-42d5-a63e-027273913148/new4.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20240525%2Fva%2Fs3%2Faws4_request&X-Amz-Date=20240525T075510Z&X-Amz-Expires=86400&X-Amz-Signature=a039dbe8bef176876ef6a166c310ed356fc3f64fb7abeb6c806b6db71880d0e4&X-Amz-SignedHeaders=host&response-content-disposition=inline%3B%20filename%3D%22new4.jpg%22&response-content-type=image%2Fjpeg&x-id=GetObject'       
+                  }
+            ],'jpg'
+        ))
+    }
+
 
 }

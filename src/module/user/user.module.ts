@@ -10,6 +10,7 @@ import { DatatransService } from 'src/service/datatrans/datatrans.service';
 @Module({
   imports: [SqlModule, ApiModule],
   controllers: [UploadController, DownloadController],
-  providers: [UploadService, DatatransService]
+  providers: [UploadService, DatatransService],
+  exports:[],
 })
 export class UserModule {}
