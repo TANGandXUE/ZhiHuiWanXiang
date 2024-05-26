@@ -4,6 +4,8 @@ import { MeituautoService } from '../../service/meituauto/meituauto.service';
 // import { json } from 'node:stream/consumers';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 
+
+
 @Controller('api/api')
 export class ApiController {
 
@@ -66,7 +68,7 @@ export class ApiController {
 
     @Get('test-meitu-auto')
     async meituauto(){
-        this.meituautoService.meitu_auto(
+        await this.meituautoService.meitu_auto(
             [
                 {
                     fileName: 'test-1.jpg',
@@ -77,8 +79,8 @@ export class ApiController {
                     fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/new2-1.jpg',
                 }
             ],
-            (responses)=>{
-                console.log('meituauto执行结束');
+            (fileInfos_url)=>{
+                console.log('meituauto执行结束: ', fileInfos_url);
             }
         );
     }
