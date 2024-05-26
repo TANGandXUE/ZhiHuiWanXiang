@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { UploadService } from '../../service/upload/upload.service';
+import { MeituautoService } from '../../service/meituauto/meituauto.service';
 // import { json } from 'node:stream/consumers';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 
@@ -8,7 +9,8 @@ export class ApiController {
 
     constructor(
         private readonly uploadService: UploadService, 
-        private readonly datatransService: DatatransService
+        private readonly datatransService: DatatransService,
+        private readonly meituautoService: MeituautoService
     ) { }
 
     @Get('test-meitu-filter')
@@ -60,6 +62,25 @@ export class ApiController {
             }],
             "png"
         ))
+    }
+
+    @Get('test-meitu-auto')
+    async meituauto(){
+        this.meituautoService.meitu_auto(
+            [
+                {
+                    fileName: 'test-1.jpg',
+                    fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/new-11.jpg',
+                },
+                {
+                    fileName: 'test-2.jpg',
+                    fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/new2-1.jpg',
+                }
+            ],
+            (responses)=>{
+                console.log('meituauto执行结束');
+            }
+        );
     }
 
 }
