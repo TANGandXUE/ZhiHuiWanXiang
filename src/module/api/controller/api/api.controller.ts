@@ -70,15 +70,23 @@ export class ApiController {
     async meituauto(){
         await this.meituautoService.meitu_auto(
             [
+                // {
+                //     fileName: 'test-1.jpg',
+                //     fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/new-11.jpg',
+                // },
                 {
-                    fileName: 'test-1.jpg',
-                    fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/new-11.jpg',
-                },
-                {
-                    fileName: 'test-2.jpg',
-                    fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/new2-1.jpg',
+                    fileName: '8.jpg',
+                    fileURL: 'https://clouddreamai.oss-cn-shanghai.aliyuncs.com/8.jpg',
                 }
             ],
+            {
+                bright_low_dark_image_flag: 1,
+                awb_norm_coef: 50,
+                exposure_norm_coef: 50,
+                dehaze_coef: 50,
+                face_beauty_alpha: [80, 80, 80, 80, 80],
+                face_restore_alpha: [50, 50, 50, 50, 50],
+            },
             (fileInfos_url)=>{
                 console.log('meituauto执行结束: ', fileInfos_url);
             }
