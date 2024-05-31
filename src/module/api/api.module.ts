@@ -10,6 +10,6 @@ import { ChatqwenService } from './service/chatqwen/chatqwen.service';
   imports: [],
   controllers: [ApiController],
   providers: [UploadService, IsimgService, DatatransService, MeituautoService, ChatqwenService],
-  exports: [UploadService],
+  exports: [UploadService, ChatqwenService, MeituautoService],
 })
 export class ApiModule {}

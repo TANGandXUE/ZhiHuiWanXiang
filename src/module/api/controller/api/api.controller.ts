@@ -1,17 +1,15 @@
 import { Controller, Get } from '@nestjs/common';
 import { UploadService } from '../../service/upload/upload.service';
 import { MeituautoService } from '../../service/meituauto/meituauto.service';
-// import { json } from 'node:stream/consumers';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { ChatqwenService } from '../../service/chatqwen/chatqwen.service';
-import { response } from 'express';
 
 
 @Controller('api/api')
 export class ApiController {
 
     constructor(
-        private readonly uploadService: UploadService, 
+        private readonly uploadService: UploadService,
         private readonly datatransService: DatatransService,
         private readonly meituautoService: MeituautoService,
         private readonly chatqwenService: ChatqwenService
@@ -59,8 +57,8 @@ export class ApiController {
     }
 
     @Get('test-ali-imageenhan')
-    async imageenhan(){
-        console.log( await this.uploadService.ali_imageEnhan(
+    async imageenhan() {
+        console.log(await this.uploadService.ali_imageEnhan(
             [{
                 fileName: 'new.jpg',
             }],
@@ -69,7 +67,7 @@ export class ApiController {
     }
 
     @Get('test-meitu-auto')
-    async meituauto(){
+    async meituauto() {
         await this.meituautoService.meitu_auto(
             [
                 // {
@@ -89,16 +87,16 @@ export class ApiController {
                 face_beauty_alpha: [80, 80, 80, 80, 80],
                 face_restore_alpha: [50, 50, 50, 50, 50],
             },
-            (fileInfos_url)=>{
+            (fileInfos_url) => {
                 console.log('meituauto执行结束: ', fileInfos_url);
             }
         );
     }
 
     @Get('test-chatqwen')
-    async chatqwen(){
+    async chatqwen() {
         const response = await this.chatqwenService.txt2param(
-            '傻逼'
+            '光线调整一下，人脸修一修，别修太多。', 'meituauto'
         )
         console.log(response);
     }

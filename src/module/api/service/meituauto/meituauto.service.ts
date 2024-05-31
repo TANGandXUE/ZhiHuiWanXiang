@@ -16,8 +16,8 @@ export class MeituautoService {
         exposure_norm_coef: 0,
         dehaze_coef: 0,
         radio: 0,
-        face_beauty_alpha: [0,0,0,0,0],
-        face_restore_alpha: [0,0,0,0,0],
+        face_beauty_alpha: [0, 0, 0, 0, 0],
+        face_restore_alpha: [0, 0, 0, 0, 0],
     }
 
 
@@ -31,7 +31,7 @@ export class MeituautoService {
     private parameter = {};
 
 
-    async meitu_auto_startProcessSingle(fileInfo: { fileName: string, fileURL: string }): Promise<string> {
+    private async meitu_auto_startProcessSingle(fileInfo: { fileName: string, fileURL: string }): Promise<string> {
         const query = {
             api_key: this.apiKey,
             api_secret: this.apiSecret,
@@ -65,7 +65,7 @@ export class MeituautoService {
 
 
 
-    async queryAsyncResult(msgId): Promise<any> {
+    private async queryAsyncResult(msgId): Promise<any> {
         console.log('目前正在查询的msgId为：', msgId);
         const requestConfig = {
             method: 'POST',

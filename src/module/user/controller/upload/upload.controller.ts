@@ -6,6 +6,8 @@ import { UploadService as ApiUploadService } from 'src/module/api/service/upload
 import { OssService } from 'src/module/sql/service/oss/oss.service';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 // import { Params } from '@alicloud/openapi-client';
+import { ChatqwenService } from 'src/module/api/service/chatqwen/chatqwen.service';
+import { MeituautoService } from 'src/module/api/service/meituauto/meituauto.service';
 
 
 @Controller('/user/upload')
@@ -15,7 +17,9 @@ export class UploadController {
         private sqlService: SqlService,
         private apiUploadService: ApiUploadService,
         private datatransService: DatatransService,
-        private ossService: OssService
+        private ossService: OssService,
+        private chatqwenService: ChatqwenService,
+        private meituautoService: MeituautoService
     ) { }
 
     @Get()
@@ -23,7 +27,7 @@ export class UploadController {
     upload(@Body() body, @UploadedFiles() files) {
         console.log('测试');
     }
-    
+
     @Post('uploadfiles')
     @UseInterceptors(FilesInterceptor('pic'))
     async uploadFiles(@Body() body, @UploadedFiles() files, @Req() req) {
@@ -50,24 +54,37 @@ export class UploadController {
         let NoRenameFileInfos = await this.ossService.reNameFileInfos(fileInfos);
 
         //写入OSS
-        let fileInfos_url = await this.ossService.uploadFiles( NoRenameFileInfos );
+        let fileInfos_url = await this.ossService.uploadFiles(NoRenameFileInfos);
 
-        let results_url = await this.datatransService.img2img(fileInfos_url, 
+        let fileInfos_jpg_url = await this.datatransService.img2img(fileInfos_url,
             {
-                outputFormat : 'jpg',
+                outputFormat: 'jpg',
                 quality: 100,
             }
         )
 
-        console.log('此处的results_url: ', results_url);
+        console.log('此处的results_url: ', fileInfos_jpg_url);
 
-        // 当results_url有值后执行这里的代码
-        let resultFileInfos = await this.apiUploadService.ali_imageEnhan(
-            await this.ossService.uploadFiles(
-                await this.datatransService.urlToLocal(results_url, 'jpg')
-            ),'jpg'
-        );
-        console.log('resultFileInfos: ', resultFileInfos);
+
+        // 调用qwen处理自然语言成meituauto参数
+        const responseParams = await this.chatqwenService.txt2param(req.body.inputText, "meituauto");
+
+        // 调用MeituAuto
+        await this.meituautoService.meitu_auto(fileInfos_jpg_url, responseParams,
+            (results_url) => {
+                console.log('meituauto执行结束: ', fileInfos_url);
+            }
+        )
+
+
+
+        // // 当results_url有值后执行这里的代码
+        // let resultFileInfos = await this.apiUploadService.ali_imageEnhan(
+        //     await this.ossService.uploadFiles(
+        //         await this.datatransService.urlToLocal(results_url, 'jpg')
+        //     ),'jpg'
+        // );
+        // console.log('resultFileInfos: ', resultFileInfos);
 
         return '上传成功';
 
@@ -122,12 +139,12 @@ export class UploadController {
         //     console.log(err)
         //     console.log('上传失败')
         // }
-        
+
         // console.log(filePathList);
 
         // res.redirect('/user');
 
-        
+
     }
 
 }
