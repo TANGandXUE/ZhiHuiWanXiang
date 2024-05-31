@@ -3,7 +3,8 @@ import { UploadService } from '../../service/upload/upload.service';
 import { MeituautoService } from '../../service/meituauto/meituauto.service';
 // import { json } from 'node:stream/consumers';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
-
+import { ChatqwenService } from '../../service/chatqwen/chatqwen.service';
+import { response } from 'express';
 
 
 @Controller('api/api')
@@ -12,7 +13,8 @@ export class ApiController {
     constructor(
         private readonly uploadService: UploadService, 
         private readonly datatransService: DatatransService,
-        private readonly meituautoService: MeituautoService
+        private readonly meituautoService: MeituautoService,
+        private readonly chatqwenService: ChatqwenService
     ) { }
 
     @Get('test-meitu-filter')
@@ -93,4 +95,13 @@ export class ApiController {
         );
     }
 
+    @Get('test-chatqwen')
+    async chatqwen(){
+        const response = await this.chatqwenService.txt2param(
+            ''
+        )
+        console.log(response);
+    }
+
 }
+

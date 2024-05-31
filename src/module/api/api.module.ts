@@ -4,11 +4,12 @@ import { UploadService } from './service/upload/upload.service';
 import { IsimgService } from './service/isimg/isimg.service';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { MeituautoService } from './service/meituauto/meituauto.service';
+import { ChatqwenService } from './service/chatqwen/chatqwen.service';
 
 @Module({
   imports: [],
   controllers: [ApiController],
-  providers: [UploadService, IsimgService, DatatransService, MeituautoService],
+  providers: [UploadService, IsimgService, DatatransService, MeituautoService, ChatqwenService],
   exports: [UploadService],
 })
 export class ApiModule {}

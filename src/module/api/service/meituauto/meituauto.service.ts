@@ -1,22 +1,26 @@
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { Injectable } from '@nestjs/common';
-import { promisify } from 'util';
 
-interface MeituAutoParams {
-    bright_low_dark_image_flag?: number,
-    highpass_background_coef?: number,
-    highpass_body_coef?: number,
-    film_granularity?: number,
-    awb_norm_coef?: number,
-    exposure_norm_coef?: number,
-    dehaze_coef?: number,
-    radio?: number,
-    face_beauty_alpha?: Array<number>,
-    face_restore_alpha?: Array<number>,
-}
+
 
 @Injectable()
 export class MeituautoService {
+
+    // 公开参数，即外部可以修改的参数
+    public publicParams = {
+        bright_low_dark_image_flag: 0,
+        highpass_background_coef: 0,
+        highpass_body_coef: 0,
+        film_granularity: 0,
+        awb_norm_coef: 0,
+        exposure_norm_coef: 0,
+        dehaze_coef: 0,
+        radio: 0,
+        face_beauty_alpha: [0,0,0,0,0],
+        face_restore_alpha: [0,0,0,0,0],
+    }
+
+
     private readonly apiKey = 'c251dc04ac244dd29334cccd74c134be';
     private readonly apiSecret = '17026d72384d4adcae57dd0a81c7027c';
     private readonly startProcessUrl = 'https://api.yunxiu.meitu.com/openapi/super_realphotolocal_async';
@@ -90,7 +94,7 @@ export class MeituautoService {
     //调用前两个方法，执行美图智能修图
     async meitu_auto(
         fileInfos_url_input: Array<{ fileName: string, fileURL: string }>,
-        externalParams: MeituAutoParams,
+        externalParams, // 外部传入的，用于修改初始参数的参数
         callback: (fileInfos_url_output) => void
     ) {
 
