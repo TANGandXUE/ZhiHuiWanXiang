@@ -72,7 +72,7 @@ export class UploadController {
         // 调用MeituAuto
         await this.meituautoService.meitu_auto(fileInfos_jpg_url, responseParams,
             (results_url) => {
-                console.log('meituauto执行结束: ', fileInfos_url);
+                console.log('meituauto执行结束: ', results_url);
             }
         )
 
