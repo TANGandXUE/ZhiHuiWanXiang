@@ -90,16 +90,26 @@ private async get_response(messages){
 // 参数处理
 private paramsProcess(responseParams, funcName: string, paramsTemplate: any){
     
+    console.log("responseParams的值为", responseParams);
 
-    // 查找名为funcName的tool_call
-    const tool_call = responseParams.tool_calls.find(
-        (tool_call) => tool_call.function.name === funcName
-    );
+    let tool_call:any = {};
 
-    if(!tool_call){
-        console.log('未找到名为' + funcName + '的tool_call');
-        throw new Error('未找到名为' + funcName + '的tool_call');
+    // 查找指定funcName的tool_call，如果没有则给默认值
+    if(responseParams && responseParams.tool_calls){
+        tool_call = responseParams.tool_calls.find(
+            (tool_call) => tool_call.function.name === funcName
+        )
+    } else {
+        tool_call = {
+            "function": {
+                "name": funcName,
+                "arguments": JSON.stringify({
+                    "properties": {}
+                }),
+            }
+        };
     }
+
 
     const responseArguments = JSON.parse(tool_call.function.arguments);
 

@@ -98,7 +98,7 @@ export class ApiController {
     @Get('test-chatqwen')
     async chatqwen(){
         const response = await this.chatqwenService.txt2param(
-            ''
+            '傻逼'
         )
         console.log(response);
     }
