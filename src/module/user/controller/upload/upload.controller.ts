@@ -30,6 +30,7 @@ export class UploadController {
 
     @Post('uploadfiles')
     @UseInterceptors(FilesInterceptor('pic'))
+    // @Render('user/download')
     async uploadFiles(@Body() body, @UploadedFiles() files, @Req() req) {
 
         // //构造一个filterParams对象
@@ -63,18 +64,46 @@ export class UploadController {
             }
         )
 
-        console.log('此处的results_url: ', fileInfos_jpg_url);
+        console.log('此处的fileInfos_jpg_url: ', fileInfos_jpg_url);
 
 
         // 调用qwen处理自然语言成meituauto参数
         const responseParams = await this.chatqwenService.txt2param(req.body.inputText, "meituauto");
 
-        // 调用MeituAuto
-        await this.meituautoService.meitu_auto(fileInfos_jpg_url, responseParams,
-            (results_url) => {
-                console.log('meituauto执行结束: ', results_url);
-            }
-        )
+        // 定义一个封装了MeituAuto的Promise
+        const meituAutoPromise = new Promise((resolve, reject) => {
+            this.meituautoService.meitu_auto(fileInfos_jpg_url, responseParams, (results_url) => {
+                if(results_url) {
+                    console.log('meituauto执行结束: ', results_url);
+                    
+                    this.datatransService.urlToLocal(results_url, 'jpg').then(fileInfos => {
+                        // console.log(fileInfos);
+                        resolve(fileInfos);
+                    }).catch(err => {
+                        reject(err);
+                    });
+                } else {
+                    reject(new Error('meituauto执行后未返回结果'));
+                }
+            })
+        });
+
+        let result_fileInfos: any = [];
+
+        //调用MeituAutoPromise
+        try{
+            result_fileInfos = await meituAutoPromise;
+            // const fileInfos_base64 = await this.datatransService.filetoBase64(result_fileInfos);
+            console.log('fileInfos_base64: ', result_fileInfos);
+
+            //上传到oss返回链接
+            const res_fileInfos_url = await this.ossService.uploadFiles( await this.ossService.reNameFileInfos(result_fileInfos));
+
+            return res_fileInfos_url ;
+        } catch(err) {
+            console.error('meituauto执行出错: ', err);
+            return ;
+        }
 
 
 
@@ -85,8 +114,6 @@ export class UploadController {
         //     ),'jpg'
         // );
         // console.log('resultFileInfos: ', resultFileInfos);
-
-        return '上传成功';
 
 
 

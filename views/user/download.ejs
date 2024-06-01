@@ -11,6 +11,7 @@
             max-width: 100%;
             height: auto;
         }
+
         .download-btn {
             margin-top: 20px;
             display: inline-block;
@@ -25,14 +26,14 @@
 
 <body>
 
-    <% // 假设图片数据在服务器端通过一个变量传递过来，例如：images %>
-    <% if (images && images.length > 0) { %>
-        <% for (let i = 0; i < images.length; i++) { %>
-            <img src="data:<%= images[i].contentType %>;base64,<%= images[i].base64String %>" alt="Generated Image <%= i + 1 %>">
-        <% } %>
-    <% } %>
+    <% if (result_fileInfos && result_fileInfos.length> 0) { %>
+        <% for (let i=0; i < result_fileInfos.length; i++) { %>
+            <img src="data:<%= result_fileInfos[i].contentType %>;base64,<%= result_fileInfos[i].fileBase64 %>"
+                alt="Generated Image <%= i + 1 %>">
+            <% } %>
+                <% } %>
 
-    <a class="download-btn" href="/upload">返回上传页面</a>
+                    <a class="download-btn" href="/upload">返回上传页面</a>
 
 </body>
 

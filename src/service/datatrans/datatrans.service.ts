@@ -12,6 +12,9 @@ export class DatatransService {
 
     //输入包含media_data属性的base64编码信息，返回包含media_data属性的file对象
     async base64toFile(base64_info_list) {
+
+        console.log('base64_info_ilst: ', base64_info_list);
+        
         const promises = base64_info_list.map(async (base64_info) => {
             if (base64_info.media_data) {
                 const image_buffer = Buffer.from(base64_info.media_data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
@@ -31,6 +34,31 @@ export class DatatransService {
     }
 
 
+    // 将fileInfos(含本地路径)转换成fileInfos(含base64编码)
+    async filetoBase64(fileInfos: Array<{ fileName: string, filePath: string }>){
+        const fileInfos_base64 = fileInfos.map(async (fileInfo) => {
+            const buffer = await fs.readFileSync(fileInfo.filePath);
+
+            let contentType: any;
+
+            if(fileInfo.fileName.split('.').pop() === 'jpg'){
+                contentType = 'image/jpeg';
+            } else {
+                contentType = `image/${fileInfo.fileName.split('.').pop()}`;
+            }
+
+            return {
+                fileName: fileInfo.fileName,
+                contentType,
+                fileBase64: buffer.toString('base64'),
+            }
+        })
+
+        return await Promise.all(fileInfos_base64);
+    }
+
+
+
     //将windows路径转换为linux路径
     convertWindowsSlashes(windowsPathArray: string[]): string[] {
         return windowsPathArray.map(path => path.replace(/\\/g, '/'));
@@ -48,6 +76,8 @@ export class DatatransService {
             // 提取文件名和扩展名
             const baseNameWithoutExt = path.basename(fileName, path.extname(fileName));
             const localFilePath = path.join(downloadDir, `${baseNameWithoutExt}.${fileType}`);
+
+            console.log('本地文件路径为: ', localFilePath);
 
             try {
                 const response = await axios({
@@ -138,6 +168,11 @@ export class DatatransService {
                 c: params.quality,
             });
 
+            //如果输入拓展名和输出的一样，则随便定义一个固定的jobID，直接返回
+            if (path.extname(fileInfo_url.fileName).toLowerCase().substring(1) === params.outputFormat) {
+                return { jobId: 100100100, fileInfo_url };
+            };
+
             const job = await this.cloudConvert.jobs.create({
                 tasks: {
                     importFile: {
@@ -174,6 +209,15 @@ export class DatatransService {
 
         // 对于每个job，启动一个异步操作来等待其完成并获取URL，不阻塞
         const resultPromises = jobInfoArray.map(async ({ jobId, fileInfo_url }) => {
+
+            //如果jobId是我随便定义的那个，那么直接返回
+            if (jobId === 100100100) {
+                return { 
+                    fileName: fileInfo_url.fileName,
+                    fileURL: fileInfo_url.fileURL 
+                };
+            }
+
             try {
                 const job = await this.cloudConvert.jobs.wait(jobId);
                 if (job.status === 'error') {

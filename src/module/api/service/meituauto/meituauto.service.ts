@@ -21,8 +21,8 @@ export class MeituautoService {
     }
 
 
-    private readonly apiKey = 'c251dc04ac244dd29334cccd74c134be';
-    private readonly apiSecret = '17026d72384d4adcae57dd0a81c7027c';
+    private readonly apiKey = '85bc7ce886a848b6b52588c6f7e1cd43';
+    private readonly apiSecret = '3488d626fa0c4d75bd0ce267e41505f8';
     private readonly startProcessUrl = 'https://api.yunxiu.meitu.com/openapi/super_realphotolocal_async';
     private readonly queryUrl = 'https://api.yunxiu.meitu.com/openapi/query';
 
