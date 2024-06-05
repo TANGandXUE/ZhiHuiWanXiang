@@ -4,10 +4,18 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Logger } from '@nestjs/common';
+import { log } from 'console';
 
 
 async function bootstrap() {
+
+  const port = 3000;
+
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const logger = new Logger();
 
   //配置cookie中间件
   app.use(cookieParser('password'));
@@ -36,11 +44,13 @@ async function bootstrap() {
     .addTag('cats')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  
+
   // 此处的api为访问路径，即http://localhost:3000/api
   SwaggerModule.setup('api', app, document);
 
 
-  await app.listen(3000);
+  await app.listen(port);
+
+  logger.log( `Application is running on: http://localhost:${port}/api` )
 }
 bootstrap();
