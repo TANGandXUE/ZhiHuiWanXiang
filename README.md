@@ -71,3 +71,121 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](LICENSE).
+
+```
+ZhiHuiWanXiang
+├─ .eslintrc.js
+├─ .git
+│  ├─ config
+│  ├─ description
+│  ├─ FETCH_HEAD
+│  ├─ HEAD
+│  ├─ hooks
+│  │  ├─ applypatch-msg.sample
+│  │  ├─ commit-msg.sample
+│  │  ├─ fsmonitor-watchman.sample
+│  │  ├─ post-update.sample
+│  │  ├─ pre-applypatch.sample
+│  │  ├─ pre-commit.sample
+│  │  ├─ pre-merge-commit.sample
+│  │  ├─ pre-push.sample
+│  │  ├─ pre-rebase.sample
+│  │  ├─ pre-receive.sample
+│  │  ├─ prepare-commit-msg.sample
+│  │  ├─ push-to-checkout.sample
+│  │  ├─ sendemail-validate.sample
+│  │  └─ update.sample
+│  ├─ index
+│  ├─ info
+│  │  └─ exclude
+│  ├─ objects
+│  │  ├─ info
+│  │  └─ pack
+│  │     ├─ pack-62329baf8e0e66bfabf4f8029137adc14b1f6ca0.idx
+│  │     ├─ pack-62329baf8e0e66bfabf4f8029137adc14b1f6ca0.pack
+│  │     └─ pack-62329baf8e0e66bfabf4f8029137adc14b1f6ca0.rev
+│  ├─ packed-refs
+│  └─ refs
+│     ├─ heads
+│     │  └─ main
+│     ├─ remotes
+│     │  └─ origin
+│     │     └─ HEAD
+│     └─ tags
+├─ .gitattributes
+├─ .gitignore
+├─ .prettierrc
+├─ nest-cli.json
+├─ package-lock.json
+├─ package.json
+├─ README.md
+├─ src
+│  ├─ app.controller.spec.ts
+│  ├─ app.controller.ts
+│  ├─ app.module.ts
+│  ├─ app.service.ts
+│  ├─ entities
+│  │  └─ userupload.entity.ts
+│  ├─ main.ts
+│  ├─ module
+│  │  ├─ api
+│  │  │  ├─ api.module.ts
+│  │  │  ├─ controller
+│  │  │  │  └─ api
+│  │  │  │     ├─ api.controller.spec.ts
+│  │  │  │     └─ api.controller.ts
+│  │  │  └─ service
+│  │  │     ├─ chatqwen
+│  │  │     │  ├─ chatqwen.service.spec.ts
+│  │  │     │  └─ chatqwen.service.ts
+│  │  │     ├─ isimg
+│  │  │     │  ├─ isimg.service.spec.ts
+│  │  │     │  └─ isimg.service.ts
+│  │  │     ├─ meituauto
+│  │  │     │  ├─ meituauto.service.spec.ts
+│  │  │     │  └─ meituauto.service.ts
+│  │  │     └─ upload
+│  │  │        ├─ upload.service.spec.ts
+│  │  │        └─ upload.service.ts
+│  │  ├─ sql
+│  │  │  ├─ controller
+│  │  │  │  └─ test
+│  │  │  │     ├─ test.controller.spec.ts
+│  │  │  │     └─ test.controller.ts
+│  │  │  ├─ service
+│  │  │  │  ├─ oss
+│  │  │  │  │  ├─ oss.service.spec.ts
+│  │  │  │  │  └─ oss.service.ts
+│  │  │  │  └─ sql
+│  │  │  │     ├─ sql.service.spec.ts
+│  │  │  │     └─ sql.service.ts
+│  │  │  └─ sql.module.ts
+│  │  └─ user
+│  │     ├─ controller
+│  │     │  ├─ download
+│  │     │  │  ├─ download.controller.spec.ts
+│  │     │  │  └─ download.controller.ts
+│  │     │  └─ upload
+│  │     │     ├─ upload.controller.spec.ts
+│  │     │     └─ upload.controller.ts
+│  │     ├─ service
+│  │     │  └─ upload
+│  │     │     ├─ upload.service.spec.ts
+│  │     │     └─ upload.service.ts
+│  │     └─ user.module.ts
+│  └─ service
+│     └─ datatrans
+│        ├─ datatrans.service.spec.ts
+│        └─ datatrans.service.ts
+├─ test
+│  ├─ app.e2e-spec.ts
+│  └─ jest-e2e.json
+├─ tsconfig.build.json
+├─ tsconfig.json
+└─ views
+   └─ user
+      ├─ download.ejs
+      ├─ test.ejs
+      └─ upload.ejs
+
+```
