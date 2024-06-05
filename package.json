@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@alicloud/dysmsapi20170525": "^2.0.24",
     "@alicloud/imageenhan20190930": "^2.0.9",
     "@alicloud/openapi-client": "^0.4.9",
     "@alicloud/tea-util": "^1.4.8",
@@ -43,6 +44,7 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "sharp": "^0.33.3",
+    "sleep-promise": "^9.1.0",
     "typeorm": "^0.3.20"
   },
   "devDependencies": {

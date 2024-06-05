@@ -63,10 +63,59 @@ export class SqlService {
         this.userInfoRepository.save(userInfo);
         console.log("注册成功: ", userInfo);
     }
-// 查找用户信息是否存在
-async elementExist(fieldName: keyof UserInfo, value: any) {
-    // 根据提供的字段名和值查询用户信息
-    return await this.userInfoRepository.findOne({ where: { [fieldName]: value } });
+    // 查找用户信息是否存在
+    async elementExist(fieldName: any, value: any) {
+        // 根据提供的字段名和值查询用户信息
+        return await this.userInfoRepository.findOne({ where: { [fieldName]: value } });
+    }
+
+    // 用户登录
+    async login(loginInfos: { userNameOrPhoneOrEmail: string, userPassword: string }) {
+        // 正则表达式用于匹配邮箱和手机号
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phonePattern = /^1[3-9]\d{9}$/;
+
+        let identifierType: string;
+        let user: UserInfo | null = null;
+
+        // 判断输入类型
+        if (emailPattern.test(loginInfos.userNameOrPhoneOrEmail)) {
+            identifierType = 'userEmail';
+        } else if (phonePattern.test(loginInfos.userNameOrPhoneOrEmail)) {
+            identifierType = 'userPhone';
+        } else {
+            // 假设剩下的情况是用户名
+            identifierType = 'userName';
+        }
+
+        // 查询用户
+        user = await this.elementExist(identifierType, loginInfos.userNameOrPhoneOrEmail);
+
+        // 处理查询结果
+        if (user) {
+            // 验证密码
+            if (user.userPassword === loginInfos.userPassword) {
+                console.log("登录成功，欢迎回来，", user.userName);
+            } else {
+                console.log("密码错误，请重新输入");
+            }
+        } else {
+            // 根据输入类型给出对应的提示
+            switch (identifierType) {
+                case 'userName':
+                    console.log("用户名不存在，请检查输入");
+                    break;
+                case 'userPhone':
+                    console.log("手机号未注册，请先注册");
+                    break;
+                case 'userEmail':
+                    console.log("邮箱未注册，请先注册");
+                    break;
+                default:
+                    console.log("输入不合法，请输入用户名、手机号或邮箱");
+                    break;
+            }
+        }
+    }
 }
 
-}

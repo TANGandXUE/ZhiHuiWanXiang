@@ -7,11 +7,12 @@ import { ApiModule } from '../api/api.module';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { UserMiddleware } from './middleware/user.middleware';
 import { RegisterController } from './controller/register/register.controller';
+import { LoginController } from './controller/login/login.controller';
 
 
 @Module({
   imports: [SqlModule, ApiModule],
-  controllers: [UploadController, DownloadController, RegisterController],
+  controllers: [UploadController, DownloadController, RegisterController, LoginController],
   providers: [UploadService, DatatransService],
   exports:[],
 })
@@ -21,8 +22,7 @@ export class UserModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
       consumer
       .apply(UserMiddleware)
-      // .forRoutes('user')
-      .forRoutes('user/register')
+      .forRoutes('user/register/post')
   }
 
 }

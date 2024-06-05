@@ -3,7 +3,7 @@ import { UploadService } from '../../service/upload/upload.service';
 import { MeituautoService } from '../../service/meituauto/meituauto.service';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { ChatqwenService } from '../../service/chatqwen/chatqwen.service';
-
+import { AlimsgService } from '../../service/alimsg/alimsg.service';
 
 @Controller('api/api')
 export class ApiController {
@@ -12,7 +12,8 @@ export class ApiController {
         private readonly uploadService: UploadService,
         private readonly datatransService: DatatransService,
         private readonly meituautoService: MeituautoService,
-        private readonly chatqwenService: ChatqwenService
+        private readonly chatqwenService: ChatqwenService,
+        private readonly alimsgService: AlimsgService
     ) { }
 
     @Get('test-meitu-filter')
@@ -101,5 +102,14 @@ export class ApiController {
         console.log(response);
     }
 
+    @Get('test-alimsg')
+    async alimsg() {
+        const response = await this.alimsgService.sendAndQuerySms(
+            "19102147124",
+            "云梦智联",
+            "SMS_468015004",
+        )
+        console.log(response);
+        }
 }
 
