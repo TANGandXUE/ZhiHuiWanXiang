@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserUpload } from 'src/entities/userupload.entity';
 import { UserInfo } from 'src/entities/userinfo.entity';
+import { JwtService } from '@nestjs/jwt';
+import { jwtConstants } from 'src/module/user/others/jwtconstants';
 
 @Injectable()
 export class SqlService {
@@ -11,7 +13,8 @@ export class SqlService {
         @InjectRepository(UserUpload)
         private readonly userUploadRepository: Repository<UserUpload>,
         @InjectRepository(UserInfo)
-        private readonly userInfoRepository: Repository<UserInfo>
+        private readonly userInfoRepository: Repository<UserInfo>,
+        private jwtService: JwtService,
     ) { }
 
     uploadFiles(fileInfos: Array<{ fileName: string, filePath: string }>) {
@@ -70,7 +73,7 @@ export class SqlService {
     }
 
     // 用户登录
-    async login(loginInfos: { userNameOrPhoneOrEmail: string, userPassword: string }) {
+    async validateUser(loginInfos: { userNameOrPhoneOrEmail: string, userPassword: string }): Promise<any> {
         // 正则表达式用于匹配邮箱和手机号
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const phonePattern = /^1[3-9]\d{9}$/;
@@ -78,7 +81,10 @@ export class SqlService {
         let identifierType: string;
         let user: UserInfo | null = null;
 
-        // 判断输入类型
+        // console.log(typeof(loginInfos.userNameOrPhoneOrEmail));
+
+        // console.log('这里执行到了');
+
         if (emailPattern.test(loginInfos.userNameOrPhoneOrEmail)) {
             identifierType = 'userEmail';
         } else if (phonePattern.test(loginInfos.userNameOrPhoneOrEmail)) {
@@ -91,31 +97,64 @@ export class SqlService {
         // 查询用户
         user = await this.elementExist(identifierType, loginInfos.userNameOrPhoneOrEmail);
 
+        // console.log("user: ", user);
+
         // 处理查询结果
         if (user) {
             // 验证密码
             if (user.userPassword === loginInfos.userPassword) {
                 console.log("登录成功，欢迎回来，", user.userName);
+                return user;
             } else {
-                console.log("密码错误，请重新输入");
+                // console.log("密码错误，请重新输入");
+                return '密码错误，请重新输入';
             }
         } else {
             // 根据输入类型给出对应的提示
             switch (identifierType) {
                 case 'userName':
-                    console.log("用户名不存在，请检查输入");
-                    break;
+                    // console.log("用户名不存在，请检查输入");
+                    return '用户名不存在，请检查输入';
                 case 'userPhone':
-                    console.log("手机号未注册，请先注册");
-                    break;
+                    // console.log("手机号未注册，请先注册");
+                    return '手机号未注册，请先注册';
                 case 'userEmail':
-                    console.log("邮箱未注册，请先注册");
-                    break;
+                    // console.log("邮箱未注册，请先注册");
+                    return '邮箱未注册，请先注册';
                 default:
-                    console.log("输入不合法，请输入用户名、手机号或邮箱");
-                    break;
+                    // console.log("输入不合法，请输入用户名、手机号或邮箱");
+                    return '输入不合法，请输入用户名、手机号或邮箱'
             }
         }
+    }
+
+    async login(user: any) {
+        // 最初userId命名为sub是为了与JWT标准保持一致
+        // 后面觉得很乱，就改了
+        // 这个payload将access_token与用户的各类信息相关联，从而让用户在提供access_token后能够访问这些信息
+        const payload = {
+            userName: user.userName,
+            userId: user.userId,
+            userPassword: user.userPassword,
+            userPoints: user.userPoints,
+            userPhone: user.userPhone,
+            userEmail: user.userEmail,
+            userStatus: user.userStatus,
+            userLevel: user.userLevel,
+            userExpireDate: user.userExpireDate,
+            userUsedPoints: user.userUsedPoints,
+            userRegisterDate: user.userRegisterDate,
+            userAvatarUrl: user.userAvatarUrl
+        };
+        
+        // 下面这行这是官方文档的写法，但被证明是错误的了，所以更新了写法
+        // console.log("access_token: ", this.jwtService.sign(payload));   
+        return {
+            access_token: this.jwtService.sign(
+                payload,
+                { secret: jwtConstants.secret }
+            )
+        };
     }
 }
 

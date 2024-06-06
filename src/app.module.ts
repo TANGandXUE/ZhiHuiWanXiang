@@ -8,6 +8,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SqlModule } from './module/sql/sql.module';
 import * as dotenv from 'dotenv';
 dotenv.config();
+import { jwtConstants } from './module/user/others/jwtconstants';
+import { JwtModule } from '@nestjs/jwt';
+// console.log('JWT Secret:', jwtConstants.secret); // 确认输出正确
+
+
 
 @Module({
   imports: [UserModule, ApiModule,
@@ -23,10 +28,15 @@ dotenv.config();
       synchronize: true,
       autoLoadEntities: true,
     }),
+    JwtModule.register({
+      global: true,
+      secret: jwtConstants.secret,
+      signOptions: { expiresIn: '300s' }, // jwt有效期300s
+    }),
     SqlModule,
   ],
   controllers: [AppController],
   providers: [AppService, DatatransService],
   exports: [DatatransService],
 })
-export class AppModule {}
+export class AppModule { }

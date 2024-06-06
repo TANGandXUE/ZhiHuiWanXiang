@@ -8,12 +8,14 @@ import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { UserMiddleware } from './middleware/user.middleware';
 import { RegisterController } from './controller/register/register.controller';
 import { LoginController } from './controller/login/login.controller';
+import { JwtStrategy } from './others/jwt.strategy';
+import { LocalStrategy } from './others/local.strategy';
 
 
 @Module({
   imports: [SqlModule, ApiModule],
   controllers: [UploadController, DownloadController, RegisterController, LoginController],
-  providers: [UploadService, DatatransService],
+  providers: [UploadService, DatatransService, LocalStrategy, JwtStrategy],
   exports:[],
 })
 
