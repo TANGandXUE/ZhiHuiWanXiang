@@ -17,9 +17,8 @@ export class AlimsgService {
         this.dysmsapiClient = new Dysmsapi(config);
     }
 
-    async sendAndQuerySms(phoneNumbers: string, signName: string, templateCode: string): Promise<any> {
-
-        //是否发送
+    async sendAndQuerySms(phoneNumbers: string, signName: string, templateCode: string): Promise<{ isSend: boolean, randomCode: number }> {
+        // 是否发送
         let isSend = false;
 
         // 生成一个六位随机数
@@ -37,54 +36,73 @@ export class AlimsgService {
             const code = sendResp.body.code;
             if (code !== 'OK') {
                 console.error(`错误信息: ${sendResp.body.message}`);
-                return;
+                isSend = false;
+                return { isSend, randomCode };
             }
 
             const bizId = sendResp.body.bizId;
             console.log(`等待阿里云返回短信发送结果: ${bizId}`);
-            // 2. 等待 10 秒后查询结果
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            // 3. 查询结果
-            const phoneNums = phoneNumbers.split(',');
 
-            //获取当前时间
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0'); // getMonth() returns 0-11, so we add 1
-            const day = String(now.getDate()).padStart(2, '0');
-            const sendDate = `${year}${month}${day}`
+            // 初始化查询计数器和定时器ID
+            let queryCount = 0;
+            const maxQueries = 10; // 最多查询10次，即10秒
+            let timeoutId: NodeJS.Timeout;
 
-            for (const phoneNum of phoneNums) {
-                const queryReq = new QuerySendDetailsRequest({
-                    phoneNumber: phoneNum,
-                    bizId,
-                    sendDate, // Format as yyyyMMdd
-                    pageSize: 10,
-                    currentPage: 1,
-                });
-                const queryResp = await this.dysmsapiClient.querySendDetails(queryReq);
-                // console.log(`查询结果: ${JSON.stringify(queryResp.body.smsSendDetailDTOs.smsSendDetailDTO)}`);
-                const dtos: any = queryResp.body.smsSendDetailDTOs.smsSendDetailDTO || [];
+            // 使用Promise来处理查询逻辑
+            return new Promise((resolve, reject) => {
+                const querySmsStatus = async () => {
+                    const phoneNums = phoneNumbers.split(',');
+                    const now = new Date();
+                    const sendDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
-                // 打印结果
-                for (const dto of dtos) {
-                    if (dto.sendStatus === 3) {
-                        console.log(`${dto.phoneNum} 发送成功，接收时间: ${dto.receiveDate}`);
-                        isSend = true;
-                    } else if (dto.sendStatus === 2) {
-                        console.log(`${dto.phoneNum} 发送失败`);
-                        isSend = false;
-                    } else {
-                        console.log(`${dto.phoneNum} 正在发送中...`);
-                        isSend = false;
+                    for (const phoneNum of phoneNums) {
+                        const queryReq = new QuerySendDetailsRequest({
+                            phoneNumber: phoneNum,
+                            bizId,
+                            sendDate,
+                            pageSize: 10,
+                            currentPage: 1,
+                        });
+                        const queryResp = await this.dysmsapiClient.querySendDetails(queryReq);
+                        const dtos: any = queryResp.body.smsSendDetailDTOs.smsSendDetailDTO || [];
+
+                        for (const dto of dtos) {
+                            if (dto.sendStatus === 3) {
+                                console.log(`${dto.phoneNum} 发送成功，接收时间: ${dto.receiveDate}`);
+                                isSend = true;
+                                clearTimeout(timeoutId); // 结果已获取，清除定时器
+                                resolve({ isSend, randomCode });
+                                return; // 直接返回结果，避免继续查询
+                            } else if (dto.sendStatus === 2) {
+                                console.log(`${dto.phoneNum} 发送失败`);
+                                isSend = false;
+                                clearTimeout(timeoutId); // 结果已获取，清除定时器
+                                resolve({ isSend, randomCode });
+                                return; // 直接返回结果，避免继续查询
+                            }
+                        }
                     }
-                }
-            }
+
+                    // 如果没有找到结果且未超时，则递归调用自身
+                    if (queryCount < maxQueries) {
+                        queryCount++;
+                        timeoutId = setTimeout(querySmsStatus.bind(this), 1000); // 每隔1秒查询一次
+                    } else {
+                        console.log("查询发送状态超时，发送失败");
+                        clearTimeout(timeoutId);
+                        resolve({ isSend, randomCode }); // 超时后返回结果
+                    }
+                };
+
+                // 开始查询
+                querySmsStatus();
+            });
+
         } catch (error) {
             console.error('发送或查询短信时发生错误', error);
             isSend = false;
+            return { isSend, randomCode };
         }
-
-        return {isSend, randomCode}
     }
+
 }

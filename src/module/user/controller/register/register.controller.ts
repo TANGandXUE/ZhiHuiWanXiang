@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Render, Req } from '@nestjs/common';
 import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { AlimsgService } from 'src/module/api/service/alimsg/alimsg.service';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @Controller('/user/register')
+@ApiTags('用户注册相关')
 export class RegisterController {
 
     constructor(
@@ -31,12 +33,15 @@ export class RegisterController {
     }
 
     @Get('getcode')
+    @ApiOperation({ summary: '获取验证码' })
     async getCode() {
-        this.alimsgService.sendAndQuerySms(
-            "19102147124",
+        const smsStatus = await this.alimsgService.sendAndQuerySms(
+            "13916839889",
             "云梦智联",
             "SMS_468015004",
         )
+        console.log('smsStatus: ', smsStatus);
+        return smsStatus;
     }
 
 
