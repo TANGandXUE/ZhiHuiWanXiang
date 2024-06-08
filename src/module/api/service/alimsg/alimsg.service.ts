@@ -28,7 +28,7 @@ export class AlimsgService {
     }
 
     // 发送手机验证码
-    async sendPhoneMsg(phoneNumbers: string, signName: string, templateCode: string): Promise<{ isSend: boolean, randomCode: number }> {
+    async sendPhoneMsg(userPhone: string, signName: string, templateCode: string): Promise<{ isSend: boolean, randomCode: number, userPhoneOrEmail: string }> {
         // 是否发送
         let isSend = false;
 
@@ -38,7 +38,7 @@ export class AlimsgService {
         try {
             // 1. 发送短信
             const sendReq = new SendSmsRequest({
-                phoneNumbers,
+                phoneNumbers: userPhone,
                 signName,
                 templateCode,
                 templateParam: `{"code": ${'' + randomCode}}`
@@ -48,7 +48,7 @@ export class AlimsgService {
             if (code !== 'OK') {
                 console.error(`错误信息: ${sendResp.body.message}`);
                 isSend = false;
-                return { isSend, randomCode };
+                return { isSend, randomCode, userPhoneOrEmail: userPhone };
             }
 
             const bizId = sendResp.body.bizId;
@@ -62,7 +62,7 @@ export class AlimsgService {
             // 使用Promise来处理查询逻辑
             return new Promise((resolve, reject) => {
                 const querySmsStatus = async () => {
-                    const phoneNums = phoneNumbers.split(',');
+                    const phoneNums = userPhone.split(',');
                     const now = new Date();
                     const sendDate = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
@@ -82,13 +82,13 @@ export class AlimsgService {
                                 console.log(`${dto.phoneNum} 发送成功，接收时间: ${dto.receiveDate}`);
                                 isSend = true;
                                 clearTimeout(timeoutId); // 结果已获取，清除定时器
-                                resolve({ isSend, randomCode });
+                                resolve({ isSend, randomCode, userPhoneOrEmail: userPhone });
                                 return; // 直接返回结果，避免继续查询
                             } else if (dto.sendStatus === 2) {
                                 console.log(`${dto.phoneNum} 发送失败`);
                                 isSend = false;
                                 clearTimeout(timeoutId); // 结果已获取，清除定时器
-                                resolve({ isSend, randomCode });
+                                resolve({ isSend, randomCode, userPhoneOrEmail: userPhone });
                                 return; // 直接返回结果，避免继续查询
                             }
                         }
@@ -101,7 +101,7 @@ export class AlimsgService {
                     } else {
                         console.log("查询发送状态超时，发送失败");
                         clearTimeout(timeoutId);
-                        resolve({ isSend, randomCode }); // 超时后返回结果
+                        resolve({ isSend, randomCode, userPhoneOrEmail: userPhone }); // 超时后返回结果
                     }
                 };
 
@@ -112,13 +112,13 @@ export class AlimsgService {
         } catch (error) {
             console.error('发送或查询短信时发生错误', error);
             isSend = false;
-            return { isSend, randomCode };
+            return { isSend, randomCode, userPhoneOrEmail: userPhone };
         }
     }
 
 
     // 新增发送邮件验证码方法
-    async sendEmailCode(userEmail: string): Promise<{ isSend: boolean, randomCode: number }> {
+    async sendEmailCode(userEmail: string): Promise<{ isSend: boolean, randomCode: number, userPhoneOrEmail: string }> {
 
         // 生成一个六位随机数
         const randomCode = Math.floor(Math.random() * 900000) + 100000;
@@ -138,14 +138,14 @@ export class AlimsgService {
             console.log(response);
 
             if (response && response.statusCode === 200) {
-                return { isSend: true, randomCode};
+                return { isSend: true, randomCode, userPhoneOrEmail: userEmail };
             } else {
                 Logger.warn(`发送邮件失败: ${response}`);
-                return { isSend: false, randomCode };
+                return { isSend: false, randomCode, userPhoneOrEmail: userEmail };
             }
         } catch (error) {
             Logger.error('发送邮件时发生错误:', error);
-            return { isSend: false, randomCode };
+            return { isSend: false, randomCode, userPhoneOrEmail: userEmail };
         }
     }
 

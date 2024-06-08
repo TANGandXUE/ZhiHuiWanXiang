@@ -65,6 +65,7 @@ export class SqlService {
 
         this.userInfoRepository.save(userInfo);
         console.log("注册成功: ", userInfo);
+        return { isRegister: true, message: '注册成功' };
     }
     // 查找用户信息是否存在
     async elementExist(fieldName: any, value: any) {

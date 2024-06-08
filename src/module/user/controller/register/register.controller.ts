@@ -20,6 +20,7 @@ export class RegisterController {
     }
 
     @Post('post')
+    // 使用了中间件处理参数，代码重构时应改成守卫
     register(@Req() req) {
         const registerParams = {
             userName: req.body.userName,
@@ -28,20 +29,20 @@ export class RegisterController {
             userEmail: req.body.userEmail,
         }
 
-        this.sqlService.register(registerParams);
+        return this.sqlService.register(registerParams);
         // console.log(registerParams);
     }
 
     @Post('getcode')
     @ApiOperation({ summary: '获取验证码' })
     async getCode(@Req() req) {
-        const smsStatus = await this.alimsgService.smsService(
+        const smsDtos = await this.alimsgService.smsService(
             req.body.userPhoneOrEmail,
             "云梦智联",
             "SMS_468015004",
         )
-        console.log('smsStatus: ', smsStatus);
-        return smsStatus;
+        console.log('smsStatus: ', smsDtos);
+        return smsDtos;
     }
 
 

@@ -20,12 +20,12 @@ export class UserMiddleware implements NestMiddleware {
       // response返回错误:用户名不能为空
       logger.error("用户名不能为空");
       allValid = false;
-      res.status(HttpStatus.BAD_REQUEST).send({ message: '用户名不能为空' });
+      res.send({ isRegister: false, message: '用户名不能为空' });
     } else if (await this.sqlService.elementExist("userName", userName) != null) {
       // response返回错误:用户名已存在
       logger.error("用户名已存在");
       allValid = false;
-      res.status(HttpStatus.BAD_REQUEST).send({ message: '用户名已存在' });
+      res.send({ isRegister: false, message: '用户名已存在' });
     }
 
     // 密码逻辑
@@ -33,7 +33,7 @@ export class UserMiddleware implements NestMiddleware {
       // reponse返回错误:密码不能为空
       logger.error('密码不能为空');
       allValid = false;
-      res.status(HttpStatus.BAD_REQUEST).send({ message: '密码不能为空' });
+      res.send({ isRegister: false, message: '密码不能为空' });
     }
 
     // 手机号/邮箱逻辑
@@ -45,7 +45,7 @@ export class UserMiddleware implements NestMiddleware {
       // response返回错误:手机号/邮箱不能为空
       logger.error('手机号/邮箱不能为空');
       allValid = false;
-      res.status(HttpStatus.BAD_REQUEST).send({ message: '手机号/邮箱不能为空' });
+      res.send({ isRegister: false, message: '手机号/邮箱不能为空' });
     } else {
       // 手动验证手机号
       const phoneRegex = /^1[3-9]\d{9}$/; // 简单的中国大陆手机号正则表达式
@@ -56,15 +56,28 @@ export class UserMiddleware implements NestMiddleware {
       let isEmailValid = emailRegex.test(userPhoneOrEmail);
 
       if (isPhoneValid) {
-        req.body['userPhone'] = userPhoneOrEmail;
+        if (await this.sqlService.elementExist("userPhone", userPhoneOrEmail) != null) {
+          // response返回错误:手机号已存在
+          allValid = false;
+          res.send({ isRegister: false, message: '手机号已存在' });
+        }
+        else {
+          req.body['userPhone'] = userPhoneOrEmail;
+        }
       } else if (isEmailValid) {
-        req.body['userEmail'] = userPhoneOrEmail;
+        if (await this.sqlService.elementExist("userEmail", userPhoneOrEmail) != null) {
+          // response返回错误:邮箱已存在
+          allValid = false;
+          res.send({ isRegister: false, message: '邮箱已存在' });
+        } else {
+          req.body['userEmail'] = userPhoneOrEmail;
+        }
       } else {
         // 返回错误
         logger.error('手机号/邮箱格式不正确');
         console.log(userPhoneOrEmail);
         allValid = false;
-        res.status(HttpStatus.BAD_REQUEST).send({ message: '手机号/邮箱格式不正确' });
+        res.send({ isRegister: false, message: '手机号/邮箱格式不正确' });
       }
     }
 
