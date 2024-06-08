@@ -1,21 +1,30 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Dysmsapi, { SendSmsRequest, QuerySendDetailsRequest } from '@alicloud/dysmsapi20170525';
+import Dm20151123, { SingleSendMailRequest } from '@alicloud/dm20151123'; // 引入邮件服务模块
 import * as OpenApi from '@alicloud/openapi-client';
-import { sign } from 'crypto';
+import Util, * as $Util from '@alicloud/tea-util';
 
 @Injectable()
 export class AlimsgService {
     private dysmsapiClient: Dysmsapi;
+    private dmClient: Dm20151123;
 
     constructor() {
         const accessKeyId = 'LTAI5tAvgeCUuzy6CNxGiUz1';
         const accessKeySecret = 'ajWhks5RfG5YzmPtvOJ1y06TivUPdE';
 
-        const config = new OpenApi.Config({});
-        config.accessKeyId = accessKeyId;
-        config.accessKeySecret = accessKeySecret;
+        const phoneSmsConfig = new OpenApi.Config({});
+        phoneSmsConfig.accessKeyId = accessKeyId;
+        phoneSmsConfig.accessKeySecret = accessKeySecret;
 
-        this.dysmsapiClient = new Dysmsapi(config);
+        const emailSmsConfig = new OpenApi.Config({});
+        emailSmsConfig.accessKeyId = accessKeyId;
+        emailSmsConfig.accessKeySecret = accessKeySecret;
+        emailSmsConfig.endpoint = `dm.aliyuncs.com`;
+
+        this.dysmsapiClient = new Dysmsapi(phoneSmsConfig);
+        this.dmClient = new Dm20151123(emailSmsConfig);
+
     }
 
     // 发送手机验证码
@@ -107,19 +116,52 @@ export class AlimsgService {
         }
     }
 
+
+    // 新增发送邮件验证码方法
+    async sendEmailCode(userEmail: string): Promise<{ isSend: boolean, randomCode: number }> {
+
+        // 生成一个六位随机数
+        const randomCode = Math.floor(Math.random() * 900000) + 100000;
+
+        try {
+            const singleSendMailRequest = new SingleSendMailRequest({
+                accountName: 'tangandxue@dm.tangandxue.com',
+                addressType: 1,
+                replyToAddress: true,
+                toAddress: userEmail,
+                subject: "智绘万象注册验证码",
+                textBody: `您的验证码为${randomCode}，请尽快注册`,
+            });
+
+            const runtime = new $Util.RuntimeOptions({});
+            const response = await this.dmClient.singleSendMailWithOptions(singleSendMailRequest, runtime);
+            console.log(response);
+
+            if (response && response.statusCode === 200) {
+                return { isSend: true, randomCode};
+            } else {
+                Logger.warn(`发送邮件失败: ${response}`);
+                return { isSend: false, randomCode };
+            }
+        } catch (error) {
+            Logger.error('发送邮件时发生错误:', error);
+            return { isSend: false, randomCode };
+        }
+    }
+
     // 分析源数据类型，执行不同的验证码发送逻辑
-    async smsService (userPhoneOrEmail: string, signName: string, templateCode: string)
-    :Promise<{ isSend: boolean, randomCode: number }> 
-    {
+    async smsService(userPhoneOrEmail: string, signName: string, templateCode: string)
+        : Promise<{ isSend: boolean, randomCode: number }> {
         // 正则表达式用于匹配邮箱和手机号
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const phonePattern = /^1[3-9]\d{9}$/;
 
         if (emailPattern.test(userPhoneOrEmail)) {
             // 执行邮箱验证码发送逻辑
+            return await this.sendEmailCode(userPhoneOrEmail);
         } else if (phonePattern.test(userPhoneOrEmail)) {
             // 执行手机号验证码发送逻辑
-            return await this.sendPhoneMsg(userPhoneOrEmail,signName,templateCode);
+            return await this.sendPhoneMsg(userPhoneOrEmail, signName, templateCode);
         } else {
             // 不符合邮箱或手机号的情况
             return { isSend: false, randomCode: 123456 }

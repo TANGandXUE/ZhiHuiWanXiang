@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@alicloud/dm20151123": "^1.2.0",
     "@alicloud/dysmsapi20170525": "^2.0.24",
     "@alicloud/imageenhan20190930": "^2.0.9",
     "@alicloud/openapi-client": "^0.4.9",
