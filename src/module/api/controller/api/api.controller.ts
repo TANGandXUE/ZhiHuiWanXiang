@@ -104,7 +104,7 @@ export class ApiController {
 
     @Get('test-alimsg')
     async alimsg() {
-        const response = await this.alimsgService.sendAndQuerySms(
+        const response = await this.alimsgService.sendPhoneMsg(
             "19102147124",
             "云梦智联",
             "SMS_468015004",

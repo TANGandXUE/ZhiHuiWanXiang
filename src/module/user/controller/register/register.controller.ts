@@ -35,8 +35,8 @@ export class RegisterController {
     @Post('getcode')
     @ApiOperation({ summary: '获取验证码' })
     async getCode(@Req() req) {
-        const smsStatus = await this.alimsgService.sendAndQuerySms(
-            req.body.userPhone,
+        const smsStatus = await this.alimsgService.smsService(
+            req.body.userPhoneOrEmail,
             "云梦智联",
             "SMS_468015004",
         )

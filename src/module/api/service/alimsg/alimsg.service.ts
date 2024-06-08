@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Dysmsapi, { SendSmsRequest, QuerySendDetailsRequest } from '@alicloud/dysmsapi20170525';
 import * as OpenApi from '@alicloud/openapi-client';
+import { sign } from 'crypto';
 
 @Injectable()
 export class AlimsgService {
@@ -17,7 +18,8 @@ export class AlimsgService {
         this.dysmsapiClient = new Dysmsapi(config);
     }
 
-    async sendAndQuerySms(phoneNumbers: string, signName: string, templateCode: string): Promise<{ isSend: boolean, randomCode: number }> {
+    // 发送手机验证码
+    async sendPhoneMsg(phoneNumbers: string, signName: string, templateCode: string): Promise<{ isSend: boolean, randomCode: number }> {
         // 是否发送
         let isSend = false;
 
@@ -102,6 +104,25 @@ export class AlimsgService {
             console.error('发送或查询短信时发生错误', error);
             isSend = false;
             return { isSend, randomCode };
+        }
+    }
+
+    // 分析源数据类型，执行不同的验证码发送逻辑
+    async smsService (userPhoneOrEmail: string, signName: string, templateCode: string)
+    :Promise<{ isSend: boolean, randomCode: number }> 
+    {
+        // 正则表达式用于匹配邮箱和手机号
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phonePattern = /^1[3-9]\d{9}$/;
+
+        if (emailPattern.test(userPhoneOrEmail)) {
+            // 执行邮箱验证码发送逻辑
+        } else if (phonePattern.test(userPhoneOrEmail)) {
+            // 执行手机号验证码发送逻辑
+            return await this.sendPhoneMsg(userPhoneOrEmail,signName,templateCode);
+        } else {
+            // 不符合邮箱或手机号的情况
+            return { isSend: false, randomCode: 123456 }
         }
     }
 
