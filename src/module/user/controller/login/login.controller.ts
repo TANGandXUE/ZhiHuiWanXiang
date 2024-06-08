@@ -43,9 +43,9 @@ export class LoginController {
     }
 
 
-    // 测试根据JWT获取用户信息
+    // 根据JWT获取用户信息
     @UseGuards(JwtAuthGuard)
-    @Get('test')
+    @Get('userinfo')
     getProfile(@Request() req) {
         return req.user;
     }
