@@ -5,8 +5,7 @@ import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
-import { log } from 'console';
-
+import * as cors from 'cors';
 
 async function bootstrap() {
 
@@ -19,6 +18,8 @@ async function bootstrap() {
 
   //配置cookie中间件
   app.use(cookieParser('password'));
+
+  app.use(cors());
 
   //配置session中间件 
   app.use(session({
