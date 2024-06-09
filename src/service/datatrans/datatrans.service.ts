@@ -234,6 +234,7 @@ export class DatatransService {
 
         // 等待所有结果处理完成
         const result_urls = await Promise.all(resultPromises);
+        // console.log("result_urls这里执行到了");
 
         return result_urls;
     }

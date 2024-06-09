@@ -55,7 +55,7 @@ export class SqlService {
         userInfo.userPhone = registerInfos.userPhone;
         userInfo.userEmail = registerInfos.userEmail;
         // 初始值
-        userInfo.userAvatarUrl = "https://clouddreamai.oss-cn-shanghai.aliyuncs.com/userLogo.jpg";
+        userInfo.userAvatarUrl = "https://clouddreamai.com/userLogo.jpg";
         userInfo.userLevel = 0;
         userInfo.userPoints = 0;
         userInfo.userRegisterDate = new Date();
