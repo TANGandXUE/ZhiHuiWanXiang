@@ -12,7 +12,7 @@ import { LoginAuthGuard } from '../../others/auth.guard';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
 import { jwtConstants } from '../../others/jwtconstants';
 
-let fileinfos: Array<{ fileName: string, filePath: string }> = [];
+let fileInfos: Array<{ fileName: string, filePath: string }> = [];
 let fileInfos_url: Array<{ fileName: string, fileURL: string }> = [];
 
 @Controller('/user/upload')
@@ -42,11 +42,11 @@ export class UploadController {
     async upload(@UploadedFiles() files): Promise<any> {
         try {
             // 写入文件并重命名重名文件
-            fileinfos = await this.ossService.reNameFileInfos(
+            fileInfos = await this.ossService.reNameFileInfos(
                 await this.uploadService.writeFiles(files)
             )
             // 写入OSS
-            fileInfos_url = await this.ossService.uploadFiles(fileinfos);
+            fileInfos_url = await this.ossService.uploadFiles(fileInfos);
             // 转换图片格式
             fileInfos_url = await this.datatransService.img2img(fileInfos_url,
                 {
@@ -72,12 +72,12 @@ export class UploadController {
     @UseGuards(JwtAuthGuard)
     async txt2params(@Req() req) {
         // 总参数列表
-        const params:any = {};
-        
+        const params: any = {};
+
         // 调用meituauto接口
         params['meituauto'] = await this.chatqwenService.txt2param(req.body.inputText, "meituauto");
         // 调用其他接口...
-        
+
 
         // 返回总参数列表
         console.log(params);
@@ -89,10 +89,46 @@ export class UploadController {
     @UseGuards(JwtAuthGuard)
     async imgProcess(@Req() req) {
 
-        let params = req.body.params;
+        // 初始化参数列表
+        let params: any = req.body.params;
+        let inputFileInfos_url = req.body.fileInfos_url;
+        let result_fileInfos_url: any;
 
-        // 调用meituauto接口
+        // 调用meituauto接口------------------------------------------------
+        // 定义一个封装了MeituAuto的Promise
+        const meituAutoPromise = new Promise((resolve, reject) => {
+            this.meituautoService.meitu_auto(inputFileInfos_url, params.meituauto, (results_url) => {
+                if (results_url) {
+                    console.log('meituauto执行结束: ', results_url);
 
+                    this.datatransService.urlToLocal(results_url, 'jpg').then(fileInfos => {
+                        // console.log(fileInfos);
+                        resolve(fileInfos);
+                    }).catch(err => {
+                        reject(err);
+                    });
+                } else {
+                    reject(new Error('meituauto执行后未返回结果'));
+                }
+            })
+        });
+        //调用MeituAutoPromise
+        try {
+            //调用MeituAutoPromise并上传到oss返回链接
+            let res: any = await meituAutoPromise;
+            result_fileInfos_url = await this.ossService.uploadFiles(await this.ossService.reNameFileInfos(res));
+        } catch (err) {
+            console.error('meituauto执行出错: ', err);
+            throw new HttpException('图形处理出错', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        // 调用其他接口-----------------------------------------------------
+
+
+
+
+        // 返回result_fileInfos_url
+        return result_fileInfos_url;
     }
 
 

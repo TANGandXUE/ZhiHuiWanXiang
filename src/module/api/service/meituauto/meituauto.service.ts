@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { Injectable } from '@nestjs/common';
 
-
+// MeituAuto最多查询次数
+let maxQueryTimes = 5;
 
 @Injectable()
 export class MeituautoService {
@@ -553,7 +554,9 @@ export class MeituautoService {
             await new Promise(resolve => setTimeout(resolve, 1200));
         }
 
-        while (msgIds.length > 0) {
+        let queryCount = 0; // 新增：查询次数计数器
+
+        while (msgIds.length > 0 && queryCount < maxQueryTimes) {
             for (const msgId of msgIds.slice()) {
                 const responseData = await this.queryAsyncResult(msgId);
 
@@ -568,11 +571,18 @@ export class MeituautoService {
                     msgIds.splice(msgIds.indexOf(msgId), 1);
                 }
 
-                console.log('当前剩余megIds长度：', msgIds.length);
+                console.log(`当前剩余msgIds长度：${msgIds.length}，已查询${queryCount}次`);
+
+                queryCount++;
             }
 
             // 等待3秒后再检查一次
             await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
+        // 如果查询次数达到30次，直接返回
+        if (queryCount >= maxQueryTimes) {
+            console.log(`达到最大查询次数${maxQueryTimes}次，直接返回`);
         }
 
         // 所有消息ID已处理完，调用回调函数
