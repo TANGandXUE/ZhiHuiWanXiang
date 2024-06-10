@@ -1,8 +1,11 @@
 import axios from 'axios';
 import { Injectable } from '@nestjs/common';
 
+import * as dotenv from 'dotenv'; // .env相关
+dotenv.config();  // .env相关
+
 // MeituAuto最多查询次数
-let maxQueryTimes = 5;
+let maxQueryTimes = 30;
 
 @Injectable()
 export class MeituautoService {
@@ -22,8 +25,8 @@ export class MeituautoService {
     }
 
 
-    private readonly apiKey = '85bc7ce886a848b6b52588c6f7e1cd43';
-    private readonly apiSecret = '3488d626fa0c4d75bd0ce267e41505f8';
+    private readonly apiKey = process.env.MEITUAUTO_APIKEY;
+    private readonly apiSecret = process.env.MEITUAUTO_APISECRET;
     private readonly startProcessUrl = 'https://api.yunxiu.meitu.com/openapi/super_realphotolocal_async';
     private readonly queryUrl = 'https://api.yunxiu.meitu.com/openapi/query';
 

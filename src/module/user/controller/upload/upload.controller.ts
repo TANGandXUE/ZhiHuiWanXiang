@@ -8,9 +8,7 @@ import { DatatransService } from 'src/service/datatrans/datatrans.service';
 // import { Params } from '@alicloud/openapi-client';
 import { ChatqwenService } from 'src/module/api/service/chatqwen/chatqwen.service';
 import { MeituautoService } from 'src/module/api/service/meituauto/meituauto.service';
-import { LoginAuthGuard } from '../../others/auth.guard';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
-import { jwtConstants } from '../../others/jwtconstants';
 
 let fileInfos: Array<{ fileName: string, filePath: string }> = [];
 let fileInfos_url: Array<{ fileName: string, fileURL: string }> = [];
@@ -31,7 +29,7 @@ export class UploadController {
 
     @Get()
     @Render('user/upload')
-    hello(@Body() body, @UploadedFiles() files) {
+    hello() {
         console.log('测试');
     }
 
@@ -73,15 +71,17 @@ export class UploadController {
     async txt2params(@Req() req) {
         // 总参数列表
         const params: any = {};
+        let status: boolean = true;
 
         // 调用meituauto接口
         params['meituauto'] = await this.chatqwenService.txt2param(req.body.inputText, "meituauto");
+        if(Object.keys(params['meituauto']).length === 0) status = false;
         // 调用其他接口...
 
 
         // 返回总参数列表
         console.log(params);
-        return params;
+        return {status, params};
     }
 
     // 图形处理

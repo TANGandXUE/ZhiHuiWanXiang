@@ -12,8 +12,6 @@ dotenv.config();  // .env相关
 
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 
-import * as path from 'path';
-
 @Injectable()
 export class UploadService {
 
