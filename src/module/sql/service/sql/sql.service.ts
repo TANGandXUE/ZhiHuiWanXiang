@@ -147,7 +147,7 @@ export class SqlService {
             userRegisterDate: user.userRegisterDate,
             userAvatarUrl: user.userAvatarUrl
         };
-        
+
         // 下面这行这是官方文档的写法，但被证明是错误的了，所以更新了写法
         // console.log("access_token: ", this.jwtService.sign(payload));   
         return {

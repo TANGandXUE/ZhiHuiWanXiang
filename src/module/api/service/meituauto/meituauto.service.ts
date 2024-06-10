@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv'; // .env相关
 dotenv.config();  // .env相关
 
 // MeituAuto最多查询次数
-let maxQueryTimes = 30;
+let maxQueryTimes = Number(process.env.MEITUAUTO_MAX_REQUEST_COUNT);
 
 @Injectable()
 export class MeituautoService {
@@ -576,8 +576,10 @@ export class MeituautoService {
 
                 console.log(`当前剩余msgIds长度：${msgIds.length}，已查询${queryCount}次`);
 
-                queryCount++;
             }
+
+            // 查询次数加1
+            queryCount++;
 
             // 等待3秒后再检查一次
             await new Promise(resolve => setTimeout(resolve, 3000));

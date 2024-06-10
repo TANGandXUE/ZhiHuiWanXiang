@@ -76,8 +76,8 @@ export class UploadService {
     // 创建AccessKey ID和AccessKey Secret，请参考https://help.aliyun.com/document_detail/175144.html。
     // 如果您用的是RAM用户AccessKey，还需要为RAM用户授予权限AliyunVIAPIFullAccess，请参考https://help.aliyun.com/document_detail/145025.html。
     // 从环境变量读取配置的AccessKey ID和AccessKey Secret。运行示例前必须先配置环境变量。 
-    accessKeyId: 'LTAI5tLYor62Eq4DtsMWpdUc',   
-    accessKeySecret: 'WmC1ESz5fKhxi8ktCqyqs1QQWGItTd'
+    accessKeyId: process.env.ALI_IMAGEENHAN_ACCESS_KEY_ID,   
+    accessKeySecret: process.env.ALI_IMAGEENHAN_ACCESS_KEY_SECRET
   });
 
   async ali_imageEnhan(fileInfos: Array<{ fileName: string }>, resultType: string) {

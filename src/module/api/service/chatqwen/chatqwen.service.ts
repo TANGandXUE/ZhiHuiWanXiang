@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { MeituautoService } from '../meituauto/meituauto.service';
-
-
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 
 @Injectable()
@@ -58,7 +58,7 @@ export class ChatqwenService {
 
 
     private async get_response(messages) {
-        const api_key = 'sk-81921fce54b345629de84818162f34ff';
+        const api_key = process.env.QWEN_API_KEY;
         const url = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
 
         const headers = {

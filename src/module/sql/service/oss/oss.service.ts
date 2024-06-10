@@ -17,44 +17,42 @@ export class OssService {
     });
 
     //上传文件到OSS
-    async uploadFiles(fileInfos: Array<{ fileName: string, filePath: string }>){
+    async uploadFiles(fileInfos: Array<{ fileName: string, filePath: string }>) {
 
         let results_url = [];
 
         try {
-                for(const fileInfo of fileInfos){
-                    // 上传文件到OSS，'object'是OSS中的文件名，'localfile'是本地文件的路径。
-                    const uploadResult = await this.client.put(fileInfo.fileName, fileInfo.filePath);
-                    // console.log('上传文件到OSS成功:', uploadResult);
+            for (const fileInfo of fileInfos) {
+                // 上传文件到OSS，'object'是OSS中的文件名，'localfile'是本地文件的路径。
+                const uploadResult = await this.client.put(fileInfo.fileName, fileInfo.filePath);
+                // console.log('上传文件到OSS成功:', uploadResult);
 
-                    results_url.push({fileName: fileInfo.fileName, fileURL: uploadResult.url});
-                }
-            } 
-            catch (error) 
-            {
-                console.error('上传文件到OSS错误:', error);
-                // 在此处添加错误处理逻辑。
+                results_url.push({ fileName: fileInfo.fileName, fileURL: uploadResult.url });
             }
-        
+        }
+        catch (error) {
+            console.error('上传文件到OSS错误:', error);
+            // 在此处添加错误处理逻辑。
+        }
+
         console.log('上传文件后的results_url: ', results_url);
         return results_url;
-        
+
     }
 
     // 从OSS下载文件
-    async downloadFiles(fileInfos: Array<{ fileName: string }>){
+    async downloadFiles(fileInfos: Array<{ fileName: string }>) {
 
         const downloadFileInfos: Array<{ fileName: string, localFilePath: string }> = []; // 创建存储文件信息的数组
 
-        try 
-        {
-            for(const fileInfo of fileInfos){
+        try {
+            for (const fileInfo of fileInfos) {
                 // 从OSS下载文件以验证上传成功。
                 const getResult = await this.client.get(fileInfo.fileName);
                 // console.log('从OSS下载文件成功，Tag为: ', getResult.res.headers.etag);
                 // console.log('从OSS下载文件成功，buffer为: ', getResult.res.data);
 
-                console.log('getResult', getResult);``
+                console.log('getResult', getResult); ``
 
                 const currentDate = new Date().toISOString().split('T')[0].replace(/-/g, '-');
                 const localFilePath = `public/sql/oss/${currentDate}-${fileInfo.fileName}.jpeg`;
@@ -63,13 +61,12 @@ export class OssService {
                 await writeFile(localFilePath, getResult.res.data, 'binary');
                 // console.log(`文件已保存至: ${localFilePath}`);
 
-                 // 文件写入成功后，将信息添加到数组
+                // 文件写入成功后，将信息添加到数组
                 downloadFileInfos.push({ fileName: fileInfo.fileName, localFilePath });
 
             }
         }
-        catch (error) 
-        {
+        catch (error) {
             console.error('从OSS下载文件错误:', error);
             // 在此处添加错误处理逻辑。
         }
@@ -85,15 +82,15 @@ export class OssService {
             // console.log('文件存在')
 
             return true;
-         }  catch (error) {
+        } catch (error) {
             if (error.code === 'NoSuchKey') {
-            //   console.log('文件不存在:', error)
-              return false;
+                //   console.log('文件不存在:', error)
+                return false;
             }
             console.log('判断文件是否存在时抛出异常错误：', error);
             return false;
-         }
-      }
+        }
+    }
 
 
     // 重命名重名的文件

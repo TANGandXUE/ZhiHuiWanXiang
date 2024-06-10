@@ -6,6 +6,8 @@ import axios from 'axios';
 import { promisify } from 'util';
 const CloudConvert = require('cloudconvert');
 const fsUnlink = promisify(fs.unlink);
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Injectable()
 export class DatatransService {
@@ -153,7 +155,7 @@ export class DatatransService {
     }
 
 
-    cloudConvert = new CloudConvert('eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNTA5ZjhmZDhkMjVmN2YzNTc2YWZkNjBiZmYwOGE0NTYxNmFhNDAyODZhYTM5OWZlMTBkYzY2ZDhkNGU5Y2VkMDI5YmFmMjE3YzllYzEyOWEiLCJpYXQiOjE3MTYxNzc5MTcuMjA2MiwibmJmIjoxNzE2MTc3OTE3LjIwNjIwMiwiZXhwIjo0ODcxODUxNTE3LjIwMzIzNCwic3ViIjoiNjg0MTkzMTEiLCJzY29wZXMiOlsidXNlci5yZWFkIiwidXNlci53cml0ZSIsInRhc2sucmVhZCIsInRhc2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJ3ZWJob29rLndyaXRlIiwicHJlc2V0LnJlYWQiLCJwcmVzZXQud3JpdGUiXX0.RX90sIOhzMfw-NZfuU64REH8vTvWvh8Npe_HswC8vnNkIKe42kMaZKm3T3eIJWLCAiEFVlKdzSuQXT7PJ3WLgBQe2Q1EuYt504DT3oanStAownQhnirU4IX02Ls94t1nBVVwoVcdN-sA1FyzcTbPi6JV_NQJeKqEcR9UxWuDUAbKcZTc_3MZRY-SKGoJOBnPgH5WN7TBrZ42XmhnCk__g3PK4zM2vM6yKSvkC9hHdWECSk4srXy08yRVpEt1xJ8rlcZ-DR5mDtsrB-Dcy73sS1gdHRKJhRQHKjUc5AeJqG6EBHzYIwLlttl8wuc3a2jfJpEKKN1l407gNFg7XZF14pymfwo_k_AZaKudmNi_S4qgKCue7duQ-A7roRMGbKlDbCQvEzh5Em3--pEs1Ym7V6TE8hJvGw0FMEoylj49Af21GmwLXvNil_XZAqea0LbeNxeGIEZ5iEiPD98a6nAc5x5n3U6gm24lCyjjb_1hJeJD-zhfop8wJUzGoefWUGcvDnqctjU5p9dsI2nSksnRxIT4K94s1ZaIu-813QWyh40MmJDZdyGsgbssAY7PEhPjOJ8XIbf9WSWkC9K3T--f56HDV91V4Dof4QETanRKlHg5aiM7Xn-rHuU3msX9_NpYMSk-cDyZLrZUd7r029jEaKq2kKhmh66IVLC7y9-bWIA');
+    cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_KEY);
 
     
     async img2img(fileInfos_url: Array<{ fileName: string, fileURL: string }>, params: { outputFormat: string, quality: number }) {

@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import Dysmsapi, { SendSmsRequest, QuerySendDetailsRequest } from '@alicloud/dysmsapi20170525';
 import Dm20151123, { SingleSendMailRequest } from '@alicloud/dm20151123'; // 引入邮件服务模块
 import * as OpenApi from '@alicloud/openapi-client';
-import Util, * as $Util from '@alicloud/tea-util';
+import * as $Util from '@alicloud/tea-util';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 @Injectable()
 export class AlimsgService {
@@ -10,8 +12,8 @@ export class AlimsgService {
     private dmClient: Dm20151123;
 
     constructor() {
-        const accessKeyId = 'LTAI5tAvgeCUuzy6CNxGiUz1';
-        const accessKeySecret = 'ajWhks5RfG5YzmPtvOJ1y06TivUPdE';
+        const accessKeyId = process.env.SMS_ACCESS_KEY_ID;
+        const accessKeySecret = process.env.SMS_ACCESS_KEY_SECRET;
 
         const phoneSmsConfig = new OpenApi.Config({});
         phoneSmsConfig.accessKeyId = accessKeyId;
