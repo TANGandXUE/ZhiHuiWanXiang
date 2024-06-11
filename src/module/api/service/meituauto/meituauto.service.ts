@@ -5,7 +5,15 @@ import * as dotenv from 'dotenv'; // .env相关
 dotenv.config();  // .env相关
 
 // MeituAuto最多查询次数
-let maxQueryTimes = Number(process.env.MEITUAUTO_MAX_REQUEST_COUNT);
+let maxQueryTimes = Number(process.env.MEITUAUTO_MAX_QUERY_COUNT || 30);
+// meitu_auto发起任务间隔（毫秒）
+let startProcessInterval = Number(process.env.MEITUAUTO_STARTPROCESS_INTERVAL || 1200);
+// queryAsyncResult发起查询间隔（毫秒）
+let queryInterval = Number(process.env.MEITUAUTO_QUERY_INTERVAL || 3000);
+//错误信息汇总
+let errorMessages: Array<string> = [];
+// 用于存储msgId和fileName的对应关系
+const msgIdToFileNameMap: Map<string, string> = new Map();
 
 @Injectable()
 export class MeituautoService {
@@ -35,7 +43,7 @@ export class MeituautoService {
     private parameter = {};
 
 
-    private async meitu_auto_startProcessSingle(fileInfo: { fileName: string, fileURL: string }): Promise<string> {
+    private async meitu_auto_startProcessSingle(fileInfo_url: { fileName: string, fileURL: string }): Promise<string> {
         const query = {
             api_key: this.apiKey,
             api_secret: this.apiSecret,
@@ -45,7 +53,7 @@ export class MeituautoService {
         const body = {
             parameter: this.parameter,
             media_info_list: [{
-                media_data: fileInfo.fileURL,
+                media_data: fileInfo_url.fileURL,
                 media_profiles: {
                     media_data_type: 'url',
                     media_data_describe: 'src',
@@ -59,10 +67,11 @@ export class MeituautoService {
                 headers: { 'Content-Type': 'application/json' },
             });
 
-            console.log('startProcess方法内的msgId: ', response.data);
+            console.log('meituauto_startProcessSingle方法内的response.data: ', response.data);
             return response.data.data.msg_id;
         } catch (error) {
-            console.error(`Error processing image ${fileInfo.fileName}:`, error);
+            console.error(`Error processing image ${fileInfo_url.fileName}:`, error);
+            errorMessages.push(`meituauto_startProcessSingle方法内，发起${fileInfo_url.fileName}的任务时出现异常。具体错误信息为：${error}`);
             throw error;
         }
     }
@@ -86,11 +95,19 @@ export class MeituautoService {
 
         try {
             const response = await axios(requestConfig);
-            console.log('queryAsyncResult方法内的ResponseData: ', response.data)
-            return response.data;
+            console.log('queryAsyncResult方法内的responseData: ', response.data)
+            if (response.data.code === 29901 || response.data.code == 0) {
+                return response.data;
+            } else {
+                const errorFileName = msgIdToFileNameMap.get(msgId);
+                errorMessages.push(`queryAsyncResult方法内，查询${errorFileName}的任务时出现异常。错误代码为${response.data.code}，错误信息为：'${response.data.message}'`);
+                throw new Error(`queryAsyncResult方法内，查询${errorFileName}的任务时出现异常。错误代码为${response.data.code}，错误信息为：'${response.data.message}'`);
+            }
+
         } catch (error) {
             console.error('Error while querying async result:', error);
             throw error;
+
         }
     }
 
@@ -99,8 +116,11 @@ export class MeituautoService {
     async meitu_auto(
         fileInfos_url_input: Array<{ fileName: string, fileURL: string }>,
         externalParams, // 外部传入的，用于修改初始参数的参数
-        callback: (fileInfos_url_output) => void
+        callback: (fileInfos_url_output, errorMessages: Array<string>) => void
     ) {
+
+        //初始化错误列表
+        errorMessages = [];
 
         //初始化参数相关逻辑
         this.parameter = {
@@ -529,10 +549,6 @@ export class MeituautoService {
         const msgIds: string[] = [];
         const fileInfos_url_output: Array<{ fileName: string, fileURL: string }> = [];
 
-
-        // 用于存储msgId和fileName的对应关系
-        const msgIdToFileNameMap: Map<string, string> = new Map();
-
         // console.log('执行到了1');
 
         // console.log('执行到了2');
@@ -543,37 +559,50 @@ export class MeituautoService {
 
             // console.log('fileInfo: ', fileInfo_url);
 
-            const msgId = await this.meitu_auto_startProcessSingle(fileInfo_url);
+            try {
 
-            // 将msgId和fileName对应起来
-            msgIdToFileNameMap.set(msgId, fileInfo_url.fileName);
+                const msgId = await this.meitu_auto_startProcessSingle(fileInfo_url);
 
-            console.log('执行到了4');
+                // 将msgId和fileName对应起来
+                msgIdToFileNameMap.set(msgId, fileInfo_url.fileName);
 
-            console.log('meitu_auto方法内的msgId: ', msgId);
-            msgIds.push(msgId);
+                // console.log('执行到了4');
 
-            //等待2秒再接着循环
-            await new Promise(resolve => setTimeout(resolve, 1200));
+                console.log('meitu_auto方法内的msgId: ', msgId);
+                msgIds.push(msgId);
+            } catch (error) {
+                // 错误不处理，仅拦截，因为meitu_auto_startProcessSingle方法内已经处理过了
+                // ...
+            }
+
+            //等待1.2秒再接着循环
+            await new Promise(resolve => setTimeout(resolve, startProcessInterval));
         }
 
         let queryCount = 0; // 新增：查询次数计数器
 
         while (msgIds.length > 0 && queryCount < maxQueryTimes) {
             for (const msgId of msgIds.slice()) {
-                const responseData = await this.queryAsyncResult(msgId);
 
-                if (responseData.code === 0) {
-                    const originalFileName = msgIdToFileNameMap.get(msgId);
-                    fileInfos_url_output.push(
-                        {
-                            fileName: `meituauto-${originalFileName}`,
-                            fileURL: responseData.data.media_data,
-                        }
-                    )
+
+                try {
+
+                    const responseData = await this.queryAsyncResult(msgId);
+
+                    if (responseData.code === 0) {
+                        const originalFileName = msgIdToFileNameMap.get(msgId);
+                        fileInfos_url_output.push(
+                            {
+                                fileName: `meituauto-${originalFileName}`,
+                                fileURL: responseData.data.media_data,
+                            }
+                        )
+                        msgIds.splice(msgIds.indexOf(msgId), 1);
+                    }
+                } catch (error) {
+                    // 出错了也要移除这个msgId的检查，但要拦截错误，不要继续throw error了，否则会导致meitu_auto这个函数的返回值为错误，从而让外部拿不到任何结果
                     msgIds.splice(msgIds.indexOf(msgId), 1);
                 }
-
                 console.log(`当前剩余msgIds长度：${msgIds.length}，已查询${queryCount}次`);
 
             }
@@ -582,16 +611,21 @@ export class MeituautoService {
             queryCount++;
 
             // 等待3秒后再检查一次
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, queryInterval));
         }
 
         // 如果查询次数达到30次，直接返回
         if (queryCount >= maxQueryTimes) {
             console.log(`达到最大查询次数${maxQueryTimes}次，直接返回`);
+            errorMessages.push('meitu_auto方法内，由于未知原因，查询已达到最大轮次');
+        }
+
+        if(errorMessages.length > 0){
+            console.log('meituauto内的errorMessages: ', errorMessages)
         }
 
         // 所有消息ID已处理完，调用回调函数
-        callback(fileInfos_url_output);
+        callback(fileInfos_url_output, errorMessages);
     }
 
 

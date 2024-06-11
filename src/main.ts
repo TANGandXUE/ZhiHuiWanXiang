@@ -6,10 +6,14 @@ import * as session from 'express-session';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import * as cors from 'cors';
+import * as dotenv from 'dotenv';
+import { log } from 'console';
+dotenv.config();
 
 async function bootstrap() {
+  console.log('port: ', process.env.PORT)
 
-  const port = 3000;
+  const port = Number(process.env.PORT || '3000');
 
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -53,5 +57,9 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log( `Application is running on: http://localhost:${port}/api` )
+
+  if(process.env.PORT === undefined){
+    while(true) logger.error('请注意！系统检测不到.env文件，请确认您已配置.env文件！')
+  }
 }
 bootstrap();

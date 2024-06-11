@@ -9,6 +9,7 @@ import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { ChatqwenService } from 'src/module/api/service/chatqwen/chatqwen.service';
 import { MeituautoService } from 'src/module/api/service/meituauto/meituauto.service';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
+import { error } from 'console';
 
 let fileInfos: Array<{ fileName: string, filePath: string }> = [];
 let fileInfos_url: Array<{ fileName: string, fileURL: string }> = [];
@@ -75,13 +76,13 @@ export class UploadController {
 
         // 调用meituauto接口
         params['meituauto'] = await this.chatqwenService.txt2param(req.body.inputText, "meituauto");
-        if(Object.keys(params['meituauto']).length === 0) status = false;
+        if (Object.keys(params['meituauto']).length === 0) status = false;
         // 调用其他接口...
 
 
         // 返回总参数列表
         console.log(params);
-        return {status, params};
+        return { status, params };
     }
 
     // 图形处理
@@ -93,11 +94,19 @@ export class UploadController {
         let params: any = req.body.params;
         let inputFileInfos_url = req.body.fileInfos_url;
         let result_fileInfos_url: any;
+        let errorInfos: Array<{ fromAPI: string, message: Array<any> }> = [];
 
         // 调用meituauto接口------------------------------------------------
         // 定义一个封装了MeituAuto的Promise
         const meituAutoPromise = new Promise((resolve, reject) => {
-            this.meituautoService.meitu_auto(inputFileInfos_url, params.meituauto, (results_url) => {
+            this.meituautoService.meitu_auto(inputFileInfos_url, params.meituauto, (results_url, message) => {
+                // 如果存在错误，写入errorInfos
+                if (message.length > 0) {
+                    errorInfos.push({
+                        fromAPI: 'meituAuto',
+                        message,
+                    })
+                }
                 if (results_url) {
                     console.log('meituauto执行结束: ', results_url);
 
@@ -128,7 +137,7 @@ export class UploadController {
 
 
         // 返回result_fileInfos_url
-        return result_fileInfos_url;
+        return {result_fileInfos_url, errorInfos};
     }
 
 
