@@ -1,4 +1,4 @@
-import { Controller, Get, HttpException, HttpStatus, Post, Render, Req, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus, Logger, Post, Render, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from '../../service/upload/upload.service';
 import { SqlService } from '../../../sql/service/sql/sql.service';
@@ -9,10 +9,13 @@ import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { ChatqwenService } from 'src/module/api/service/chatqwen/chatqwen.service';
 import { MeituautoService } from 'src/module/api/service/meituauto/meituauto.service';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
-import { error } from 'console';
+import * as sharp from 'sharp';
+import * as path from 'path';
 
 let fileInfos: Array<{ fileName: string, filePath: string }> = [];
 let fileInfos_url: Array<{ fileName: string, fileURL: string }> = [];
+
+const logger = new Logger();
 
 @Controller('/user/upload')
 export class UploadController {
@@ -137,9 +140,51 @@ export class UploadController {
 
 
         // 返回result_fileInfos_url
-        return {result_fileInfos_url, errorInfos};
+        return { result_fileInfos_url, errorInfos };
     }
 
+
+    // 图形压缩
+    @Post('imgCompress')
+    @UseGuards(JwtAuthGuard)
+    async imgCompress(@Req() req) {
+
+        logger.error('这里执行到了');
+        // 初始化赋值
+        fileInfos_url = req.body.fileInfos_url;
+        const quality = req.body.quality;
+        // let compressedCount = 0;
+
+        logger.error(`fileInfos_url: ${JSON.stringify(fileInfos_url)}, quality: ${quality}, type of quality: ${typeof quality}`)
+
+        try {
+
+            // 将url转换为本地文件
+            fileInfos = await this.datatransService.urlToLocal(fileInfos_url, 'jpg');
+            logger.error(`fileInfos: ${JSON.stringify(fileInfos)}`);
+
+
+            const startCompress = fileInfos.map(async (fileInfo) => {
+
+                // 分割路径并给出新路径
+                const { dir, name, ext } = path.parse(fileInfo.filePath);
+                const outputFileName = `${name}_preview${ext}`;
+                const outputFilePath = path.join(dir, outputFileName);
+                await sharp(fileInfo.filePath).jpeg({ quality }).toFile(outputFilePath);
+                fileInfo.fileName = outputFileName;
+                fileInfo.filePath = outputFilePath;
+                logger.error(`已处理`)
+            });
+
+            await Promise.all(startCompress);
+            console.log("fileInfos:", fileInfos);
+            return await this.ossService.uploadFiles(fileInfos);
+
+        } catch (e) {
+            logger.error(e);
+            throw new HttpException('图片压缩时，出现了未知错误', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
 
 

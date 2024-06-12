@@ -196,8 +196,8 @@ export class MeituautoService {
                 "middle_half_of_face": [0, 0, 0, 0, 0],
                 "bottom_half_of_face": [0, 0, 0, 0, 0],
                 "mouth_smile": [0, 0, 0, 0, 0],
-                "face_beauty_alpha": [58, 72, 61, 72, 58],
-                "face_restore_alpha": [80, 80, 99, 80, 80],
+                "face_beauty_alpha": [0, 0, 0, 0, 0],
+                "face_restore_alpha": [0, 0, 0, 0, 0],
                 "wrinkle_forehead_removal_alpha": [90, 90, 80, 90, 90],
                 "wrinkle_periorbital_removal_alpha": [90, 90, 65, 90, 90],
                 "wrinkle_nasolabial_removal_alpha": [90, 90, 83, 90, 90],
@@ -620,7 +620,7 @@ export class MeituautoService {
             errorMessages.push('meitu_auto方法内，由于未知原因，查询已达到最大轮次');
         }
 
-        if(errorMessages.length > 0){
+        if (errorMessages.length > 0) {
             console.log('meituauto内的errorMessages: ', errorMessages)
         }
 
