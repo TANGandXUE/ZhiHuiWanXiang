@@ -2,6 +2,7 @@ import { Controller, Get, Post, Render, Req } from '@nestjs/common';
 import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { AlimsgService } from 'src/module/api/service/alimsg/alimsg.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { json } from 'stream/consumers';
 
 @Controller('/user/register')
 @ApiTags('用户注册相关')
@@ -43,6 +44,20 @@ export class RegisterController {
         )
         console.log('smsStatus: ', smsDtos);
         return smsDtos;
+    }
+
+    @Post('forgetpassword')
+    async forgetPassword(@Req() req) {
+
+        // 解析request
+            const userPhone = req.body.userPhone;
+            const userEmail = req.body.userEmail;
+            const userPassword = req.body.userPassword;
+            const updateType = 'userPassword';
+
+        // 根据手机号或邮箱重设密码
+        return await this.sqlService.updateUserInfo(userPhone, userEmail, userPassword, updateType);
+
     }
 
 

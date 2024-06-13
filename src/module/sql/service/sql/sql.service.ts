@@ -73,6 +73,34 @@ export class SqlService {
         return await this.userInfoRepository.findOne({ where: { [fieldName]: value } });
     }
 
+    // 更新用户信息
+    async updateUserInfo(userPhone: string, userEmail: string, updateInfo: string, updateType: string) {
+
+        let userToUpdate: any = {};
+
+        if (userPhone !== '')
+            userToUpdate = await this.userInfoRepository.findOne({ where: { userPhone } });
+        else if (userEmail !== '')
+            userToUpdate = await this.userInfoRepository.findOne({ where: { userEmail } });
+        else
+            return { isSuccess: false, message: '手机号和邮箱均为空' };
+
+        // 检查用户是否存在
+        if (!userToUpdate) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        }
+
+        // 更新信息
+        userToUpdate[updateType] = updateInfo;
+
+        // 保存更新后的用户信息到数据库
+        await this.userInfoRepository.save(userToUpdate);
+        console.log("用户信息更新成功: ", userToUpdate);
+        return { isSuccess: true, message: '用户信息更新成功' };
+    }
+
+
     // 用户登录
     async validateUser(loginInfos: { userNameOrPhoneOrEmail: string, userPassword: string }): Promise<any> {
         // 正则表达式用于匹配邮箱和手机号
@@ -157,5 +185,6 @@ export class SqlService {
             )
         };
     }
+
 }
 

@@ -10,6 +10,7 @@ import { RegisterController } from './controller/register/register.controller';
 import { LoginController } from './controller/login/login.controller';
 import { JwtStrategy } from './others/jwt.strategy';
 import { LocalStrategy } from './others/local.strategy';
+import { ForgetpasswordMiddleware } from './middleware/forgetpassword.middleware';
 
 
 @Module({
@@ -24,7 +25,10 @@ export class UserModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
       consumer
       .apply(UserMiddleware)
-      .forRoutes('user/register/post')
+      .forRoutes('user/register/post'),
+      consumer
+      .apply(ForgetpasswordMiddleware)
+      .forRoutes('user/register/forgetpassword')
   }
 
 }
