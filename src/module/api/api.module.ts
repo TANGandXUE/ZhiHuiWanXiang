@@ -6,9 +6,10 @@ import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { MeituautoService } from './service/meituauto/meituauto.service';
 import { ChatqwenService } from './service/chatqwen/chatqwen.service';
 import { AlimsgService } from './service/alimsg/alimsg.service';
+import { SqlModule } from '../sql/sql.module';
 
 @Module({
-  imports: [],
+  imports: [SqlModule],
   controllers: [ApiController],
   providers: [UploadService, IsimgService, DatatransService, MeituautoService, ChatqwenService, AlimsgService],
   exports: [UploadService, ChatqwenService, MeituautoService, AlimsgService],

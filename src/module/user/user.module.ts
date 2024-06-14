@@ -11,11 +11,12 @@ import { LoginController } from './controller/login/login.controller';
 import { JwtStrategy } from './others/jwt.strategy';
 import { LocalStrategy } from './others/local.strategy';
 import { ForgetpasswordMiddleware } from './middleware/forgetpassword.middleware';
+import { SettingsController } from './controller/settings/settings.controller';
 
 
 @Module({
   imports: [SqlModule, ApiModule],
-  controllers: [UploadController, DownloadController, RegisterController, LoginController],
+  controllers: [UploadController, DownloadController, RegisterController, LoginController, SettingsController],
   providers: [UploadService, DatatransService, LocalStrategy, JwtStrategy],
   exports:[],
 })

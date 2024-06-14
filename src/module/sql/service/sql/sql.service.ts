@@ -91,6 +91,18 @@ export class SqlService {
             return { isSuccess: false, message: '用户不存在' };
         }
 
+        // 判断更新的信息是否是不能与数据库中数据重复的类型，比如手机号不能重复等
+        if (updateType === "userName") {
+            if (await this.elementExist(updateType, updateInfo))
+                return { isSuccess: false, message: '用户名已存在' };
+        } else if (updateType === "userPhone") {
+            if (await this.elementExist(updateType, updateInfo))
+                return { isSuccess: false, message: '手机号已存在' };
+        } else if (updateType === "userEmail") {
+            if (await this.elementExist(updateType, updateInfo))
+                return { isSuccess: false, message: '邮箱已存在' };
+        }
+
         // 更新信息
         userToUpdate[updateType] = updateInfo;
 

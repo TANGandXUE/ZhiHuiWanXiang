@@ -46,6 +46,18 @@ export class RegisterController {
         return smsDtos;
     }
 
+    @Post('getcodewithvalidate')
+    @ApiOperation({ summary: '获取验证码，并验证手机号或邮箱在数据库中是否存在' })
+    async getCodeWithValidate(@Req() req) {
+        const smsDtos = await this.alimsgService.smsServiceWithValidate(
+            req.body.userPhoneOrEmail,
+            "云梦智联",
+            "SMS_468015004",
+        )
+        console.log('smsStatus: ', smsDtos);
+        return smsDtos;
+    }
+
     @Post('forgetpassword')
     async forgetPassword(@Req() req) {
 

@@ -5,13 +5,16 @@ import * as OpenApi from '@alicloud/openapi-client';
 import * as $Util from '@alicloud/tea-util';
 import * as dotenv from 'dotenv';
 dotenv.config();
+import { SqlService } from 'src/module/sql/service/sql/sql.service';
 
 @Injectable()
 export class AlimsgService {
     private dysmsapiClient: Dysmsapi;
     private dmClient: Dm20151123;
 
-    constructor() {
+    constructor(
+        private readonly sqlService: SqlService,
+    ) {
         const accessKeyId = process.env.SMS_ACCESS_KEY_ID;
         const accessKeySecret = process.env.SMS_ACCESS_KEY_SECRET;
 
@@ -164,6 +167,33 @@ export class AlimsgService {
         } else if (phonePattern.test(userPhoneOrEmail)) {
             // 执行手机号验证码发送逻辑
             return await this.sendPhoneMsg(userPhoneOrEmail, signName, templateCode);
+        } else {
+            // 不符合邮箱或手机号的情况
+            return { isSend: false, randomCode: 123456 }
+        }
+    }
+
+    // 分析源数据类型，执行不同的验证码发送逻辑
+    async smsServiceWithValidate(userPhoneOrEmail: string, signName: string, templateCode: string)
+        : Promise<any> {
+        // 正则表达式用于匹配邮箱和手机号
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phonePattern = /^1[3-9]\d{9}$/;
+
+        if (emailPattern.test(userPhoneOrEmail)) {
+            // 执行邮箱验证码发送逻辑
+            if (!await this.sqlService.elementExist('userEmail', userPhoneOrEmail)) {
+                return { isSend: false, message: '邮箱错误' }
+            } else {
+                return await this.sendEmailCode(userPhoneOrEmail);
+            }
+        } else if (phonePattern.test(userPhoneOrEmail)) {
+            // 执行手机号验证码发送逻辑
+            if (!await this.sqlService.elementExist('userPhone', userPhoneOrEmail)) {
+                return { isSend: false, message: '手机号错误' }
+            } else {
+                return await this.sendPhoneMsg(userPhoneOrEmail, signName, templateCode);
+            }
         } else {
             // 不符合邮箱或手机号的情况
             return { isSend: false, randomCode: 123456 }
