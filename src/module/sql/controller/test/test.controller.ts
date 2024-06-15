@@ -117,8 +117,18 @@ export class TestController {
 
     @Get('findUserName')
     async findUserName(){
-        console.log(await this.sqlService.elementExist('userName', 'test'));
+        console.log(await this.sqlService.elementExist('userName', 'TANGXUE'));
     }
 
+
+    @Get('deductpoints')
+    async deductPoints(){
+        console.log(await this.sqlService.deductPoints('18001633139', '', 10));
+    }
+
+    @Get('addpoints')
+    async addPoints(){
+        console.log(await this.sqlService.addPoints('18001633139', '', 10));
+    }
 
 }

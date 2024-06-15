@@ -1,10 +1,9 @@
-import { Controller, Post, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OssService } from 'src/module/sql/service/oss/oss.service';
 import { UploadService } from '../../service/upload/upload.service';
-import { response } from 'express';
 
 @Controller('settings')
 export class SettingsController {
@@ -59,4 +58,33 @@ export class SettingsController {
         }
 
     }
+
+    // 获取点数
+    @Post('getpoints')
+    @UseGuards(JwtAuthGuard)
+    async getPoints(@Req() req) {
+        return await this.sqlService.getPoints(req.body.userPhone, req.body.userEmail);
+    }
+
+    // 判断点数足够与否
+    @Post('ispointsenough')
+    @UseGuards(JwtAuthGuard)
+    async isPointsEnough(@Req() req) {
+        return await this.sqlService.isPointsEnough(req.body.userPhone, req.body.userEmail, req.body.pointsToDeduct);
+    }
+
+    // 扣除点数
+    @Post('deductpoints')
+    @UseGuards(JwtAuthGuard)
+    async deductPoints(@Req() req) {
+        return await this.sqlService.deductPoints(req.body.userPhone, req.body.userEmail, req.body.pointsToDeduct);
+    }
+
+    // 充值点数
+    @Post('addpoints')
+    @UseGuards(JwtAuthGuard)
+    async addPoints(@Req() req) {
+        return await this.sqlService.addPoints(req.body.userPhone, req.body.userEmail, req.body.pointsToAdd);
+    }
 }
+

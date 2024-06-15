@@ -3,6 +3,7 @@ import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { LoginAuthGuard } from '../../others/auth.guard';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { use } from 'passport';
 
 @Controller('/user/login')
 @ApiTags('用户登陆相关')
@@ -43,11 +44,22 @@ export class LoginController {
     }
 
 
-    // 根据JWT获取用户信息
+    // 旧版，根据JWT获取用户信息
     @UseGuards(JwtAuthGuard)
     @Get('userinfo')
     getProfile(@Request() req) {
         return req.user;
+    }
+
+    // 新版，根据JWT获取用户信息
+    @UseGuards(JwtAuthGuard)
+    @Get('syncinfos')
+    async syncInfos(@Request() req) {
+        // 获取必然不会变动的信息，以用来作为凭据，从数据库中获取动态信息
+        const userPhone = req.user.userPhone;
+        const userEmail = req.user.userEmail;
+
+        return await this.sqlService.getUserInfos(userPhone, userEmail);
     }
 
 

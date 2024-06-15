@@ -183,20 +183,20 @@ export class AlimsgService {
         if (emailPattern.test(userPhoneOrEmail)) {
             // 执行邮箱验证码发送逻辑
             if (!await this.sqlService.elementExist('userEmail', userPhoneOrEmail)) {
-                return { isSend: false, message: '邮箱错误' }
+                return { isSend: false, message: '邮箱与该账号不匹配' }
             } else {
                 return await this.sendEmailCode(userPhoneOrEmail);
             }
         } else if (phonePattern.test(userPhoneOrEmail)) {
             // 执行手机号验证码发送逻辑
             if (!await this.sqlService.elementExist('userPhone', userPhoneOrEmail)) {
-                return { isSend: false, message: '手机号错误' }
+                return { isSend: false, message: '手机号与该账号不匹配' }
             } else {
                 return await this.sendPhoneMsg(userPhoneOrEmail, signName, templateCode);
             }
         } else {
             // 不符合邮箱或手机号的情况
-            return { isSend: false, randomCode: 123456 }
+            return { isSend: false, message: '请输入正确的邮箱/手机号' }
         }
     }
 

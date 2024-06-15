@@ -5,6 +5,12 @@ import { UserUpload } from 'src/entities/userupload.entity';
 import { UserInfo } from 'src/entities/userinfo.entity';
 import { JwtService } from '@nestjs/jwt';
 import { jwtConstants } from 'src/module/user/others/jwtconstants';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+const initUserAvatarUrl = process.env.INIT_USER_AVATAR_URL || 'https://clouddreamai.com/userLogo.jpg'
+const initUserPoints = Number(process.env.INIT_USER_POINTS || '100');
+const minPointsAfterDeduct = Number(process.env.MIN_POINTS_AFTER_DEDUCT || '0');
 
 @Injectable()
 export class SqlService {
@@ -55,9 +61,9 @@ export class SqlService {
         userInfo.userPhone = registerInfos.userPhone;
         userInfo.userEmail = registerInfos.userEmail;
         // 初始值
-        userInfo.userAvatarUrl = "https://clouddreamai.com/userLogo.jpg";
+        userInfo.userAvatarUrl = initUserAvatarUrl;
         userInfo.userLevel = 0;
-        userInfo.userPoints = 0;
+        userInfo.userPoints = initUserPoints;
         userInfo.userRegisterDate = new Date();
         userInfo.userStatus = 'normal';
         userInfo.userUsedPoints = 0;
@@ -110,6 +116,125 @@ export class SqlService {
         await this.userInfoRepository.save(userToUpdate);
         console.log("用户信息更新成功: ", userToUpdate);
         return { isSuccess: true, message: '用户信息更新成功' };
+    }
+
+    // 获取点数
+    async getPoints(userPhone: string, userEmail: string) {
+        let userToGet: any = {};
+
+        if (userPhone !== '')
+            userToGet = await this.userInfoRepository.findOne({ where: { userPhone } });
+        else if (userEmail !== '')
+            userToGet = await this.userInfoRepository.findOne({ where: { userEmail } });
+        else
+            return { isSuccess: false, message: '手机号和邮箱均为空' };
+
+        // 检查用户是否存在
+        if (!userToGet) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        } else {
+            return { isSuccess: true, message: '获取点数成功', data: userToGet.userPoints };
+        }
+    }
+
+    // 获取所有用户信息
+    async getUserInfos(userPhone: string, userEmail: string) {
+        let userToGet: any = {};
+
+        if (userPhone !== '')
+            userToGet = await this.userInfoRepository.findOne({ where: { userPhone } });
+        else if (userEmail !== '')
+            userToGet = await this.userInfoRepository.findOne({ where: { userEmail } });
+        else
+            return { isSuccess: false, message: '手机号和邮箱均为空' };
+
+        // 检查用户是否存在
+        if (!userToGet) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        } else {
+            return { isSuccess: true, message: '获取用户信息成功', data: userToGet };
+        }
+    }
+
+    // 判断点数够不够
+    async isPointsEnough(userPhone: string, userEmail: string, pointsToDeduct: number) {
+        let userToGet: any = {};
+
+        if (userPhone !== '')
+            userToGet = await this.userInfoRepository.findOne({ where: { userPhone } });
+        else if (userEmail !== '')
+            userToGet = await this.userInfoRepository.findOne({ where: { userEmail } });
+        else
+            return { isSuccess: false, message: '手机号和邮箱均为空' };
+
+        // 检查用户是否存在
+        if (!userToGet) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        }
+
+        if (userToGet.userPoints - pointsToDeduct < minPointsAfterDeduct)
+            return { isSuccess: false, message: '点数不足', data: userToGet.userPoints }
+        else
+            return { isSuccess: true, message: '点数充足', data: userToGet.userPoints };
+
+    }
+
+    // 扣除点数
+    async deductPoints(userPhone: string, userEmail: string, pointsToDeduct: number) {
+        let userToUpdate: any = {};
+
+        if (userPhone !== '')
+            userToUpdate = await this.userInfoRepository.findOne({ where: { userPhone } });
+        else if (userEmail !== '')
+            userToUpdate = await this.userInfoRepository.findOne({ where: { userEmail } });
+        else
+            return { isSuccess: false, message: '手机号和邮箱均为空' };
+
+        // 检查用户是否存在
+        if (!userToUpdate) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        }
+
+        // 扣除点数
+        if (userToUpdate.userPoints - pointsToDeduct >= minPointsAfterDeduct) {
+            userToUpdate.userPoints = userToUpdate.userPoints - pointsToDeduct;
+            userToUpdate.userUsedPoints = userToUpdate.userUsedPoints + pointsToDeduct;
+            await this.userInfoRepository.save(userToUpdate);
+            console.log("扣点成功: ", userToUpdate);
+            return { isSuccess: true, message: '扣点成功', data: userToUpdate.userPoints };
+        } else {
+            return { isSuccess: false, message: '扣点失败，点数不足' };
+        }
+
+    }
+
+    // 增加点数
+    async addPoints(userPhone: string, userEmail: string, pointsToAdd: number) {
+        let userToUpdate: any = {};
+
+        if (userPhone !== '')
+            userToUpdate = await this.userInfoRepository.findOne({ where: { userPhone } });
+        else if (userEmail !== '')
+            userToUpdate = await this.userInfoRepository.findOne({ where: { userEmail } });
+        else
+            return { isSuccess: false, message: '手机号和邮箱均为空' };
+
+        // 检查用户是否存在
+        if (!userToUpdate) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        }
+
+        // 增加点数
+        userToUpdate.userPoints = userToUpdate.userPoints + pointsToAdd;
+        await this.userInfoRepository.save(userToUpdate);
+        console.log("点数充值成功: ", userToUpdate);
+        return { isSuccess: true, message: '点数充值成功', data: userToUpdate.userPoints };
+
     }
 
 
