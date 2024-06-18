@@ -1,0 +1,46 @@
+// pay.controller.ts
+import { Controller, Post, Get, Req, Res } from '@nestjs/common';
+import { PayService } from '../../service/pay/pay.service';
+
+@Controller('api/pay')
+export class PayController {
+    constructor(private readonly payService: PayService) { }
+
+    @Post('start')
+    async startPayment(@Req() req): Promise<any> {
+        console.log(req.body.payMethod);
+        const responseData = await this.payService.startPayment(
+            req.body.itemName,
+            req.body.itemPrice,
+            req.body.payMethod,
+            req.body.deviceType,
+            req.body.userId,
+            req.body.addPoints,
+            req.body.addExpireDate,
+            req.body.addLevel,
+        );
+        console.log('支付已发起:', responseData);
+        return responseData; // 根据实际情况返回给前端的信息
+    }
+
+    @Get('notify') // 异步通知的路由，通常由支付平台发起GET请求
+    async handlePaymentNotification(@Req() request, @Res() response): Promise<any> {
+        try {
+            const notifyResult = await this.payService.handleNotification(request);
+            if (notifyResult === 'success') {
+                response.status(200).send(notifyResult); // 返回success给支付平台
+            } else {
+                response.status(500).send(notifyResult); // 错误情况下可根据需要调整响应状态码
+            }
+        } catch (error) {
+            response.status(500).send('Error processing notification.'); // 处理异常情况
+        }
+    }
+
+    @Post('query')
+    async queryPaymentStatus(@Req() req): Promise<any> {
+        return await this.payService.queryPaymentStatus(req.body.tradeId);
+    }
+
+
+}

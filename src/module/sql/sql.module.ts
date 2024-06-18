@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SqlService } from './service/sql/sql.service';
 import { UserUpload } from '../../entities/userupload.entity';
 import { UserInfo } from 'src/entities/userinfo.entity';
+import { Pay } from 'src/entities/pay.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OssService } from './service/oss/oss.service';
 import { TestController } from './controller/test/test.controller';
@@ -11,7 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([UserUpload, UserInfo])
+        TypeOrmModule.forFeature([UserUpload, UserInfo, Pay])
     ],
     providers: [SqlService, OssService, DatatransService, JwtService],
     exports: [SqlService, OssService],

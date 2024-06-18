@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserUpload } from 'src/entities/userupload.entity';
 import { UserInfo } from 'src/entities/userinfo.entity';
+import { Pay } from 'src/entities/pay.entity';
 import { JwtService } from '@nestjs/jwt';
 import { jwtConstants } from 'src/module/user/others/jwtconstants';
 import * as dotenv from 'dotenv';
@@ -20,6 +21,8 @@ export class SqlService {
         private readonly userUploadRepository: Repository<UserUpload>,
         @InjectRepository(UserInfo)
         private readonly userInfoRepository: Repository<UserInfo>,
+        @InjectRepository(Pay)
+        private readonly payRepository: Repository<Pay>,
         private jwtService: JwtService,
     ) { }
 
