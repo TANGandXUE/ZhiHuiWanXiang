@@ -27,4 +27,9 @@ export class Pay {
     @Column({ type: "int" })
     payerAddLevel: number;
 
+    //付款者相关权益是否已实际添加到用户信息中
+    //前端会来查询这个值，来判断是否支付成功
+    @Column()
+    payerHasAdded: boolean;
+
 }

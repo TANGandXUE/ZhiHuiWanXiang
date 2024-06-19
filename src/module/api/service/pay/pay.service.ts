@@ -6,14 +6,17 @@ import * as crypto from 'crypto';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { Pay } from 'src/entities/pay.entity';
-import { Any, Repository } from 'typeorm';
+import { UserInfo } from 'src/entities/userinfo.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class PayService {
 
     constructor(
         @InjectRepository(Pay)
-        private readonly payRepository: Repository<Pay>
+        private readonly payRepository: Repository<Pay>,
+        @InjectRepository(UserInfo)
+        private readonly userInfoRepository: Repository<UserInfo>,
     ) { }
 
 
@@ -28,6 +31,7 @@ export class PayService {
         type: 'wxpay',
         out_trade_no: '202406170211',
         notify_url: process.env.PAY_NOTIFY_URL || 'https://31d5424h62.zicp.fun/api/pay/notify',
+        return_url: process.env.PAY_RETURN_URL || 'https://sd.tangandxue.cn',
         name: 'VIP商品',
         money: '0.01',
         clientip: process.env.PAY_CLIENT_IP || '192.168.1.100',
@@ -124,7 +128,8 @@ export class PayService {
         const calculatedSign = this.sign(req.query, this.apiKey);
 
         if (receivedSign === calculatedSign) {
-            // 将支付结果存入数据库
+
+            // 支付结果 => 支付数据库
             const payInfo = new Pay();
             payInfo.payertradeId = this.data.out_trade_no;
             payInfo.payerId = this.userId;
@@ -132,9 +137,23 @@ export class PayService {
             payInfo.payerAddPoints = this.addPoints;
             payInfo.payerAddExpireDate = this.addExpireDate;
             payInfo.payerAddLevel = this.addLevel;
-
+            payInfo.payerHasAdded = false;
             console.log("payInfo为: ", payInfo);
             this.payRepository.save(payInfo);
+
+            // 购买的权益 => 用户信息数据库
+            const userInfo = await this.userInfoRepository.findOne({ where: { userId: this.userId } });
+            // console.log("userPoints: ", userInfo.userPoints);
+            // console.log("addPoints: ", this.addPoints);
+            // console.log("userLevel: ", userInfo.userLevel);
+            // console.log("addLevel: ", this.addLevel);
+            userInfo.userPoints = userInfo.userPoints + this.addPoints;
+            userInfo.userLevel = userInfo.userLevel + this.addLevel;
+            // 应该还有会员有效期的相关参数
+            // ...
+            console.log("userInfo为: ", userInfo);
+            this.userInfoRepository.save(userInfo);
+
 
             // 将支付成功的消息告诉前端
             // ... 
