@@ -1,6 +1,7 @@
 // pay.controller.ts
-import { Controller, Post, Get, Req, Res } from '@nestjs/common';
+import { Controller, Post, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { PayService } from '../../service/pay/pay.service';
+import { JwtAuthGuard } from 'src/module/user/others/jwt-auth.guard';
 
 @Controller('api/pay')
 export class PayController {
@@ -42,5 +43,14 @@ export class PayController {
         return await this.payService.queryPaymentStatus(req.body.tradeId);
     }
 
+
+    // 根据JWT获取支付记录
+    @UseGuards(JwtAuthGuard)
+    @Get('syncinfos')
+    async syncInfos(@Req() req) {
+        // userId是必然不会变动的信息，所以用UseGuards来从JWT中取出，以从数据库中获取动态信息
+        const payerId = req.user.userId;
+        return await this.payService.getPayInfos(payerId);
+    }
 
 }

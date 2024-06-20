@@ -56,7 +56,7 @@ export class PayService {
         return `${datePart}${randomPart}`;
     }
 
-    public async startPayment(itemName: string, itemPrice: string, payMethod: string, deviceType: string, userId: number, addPoints: number, addExpireDate: Date, addLevel: number): Promise<any> {
+    public async startPayment(itemName: string, itemPrice: string, payMethod: string, deviceType: string, userId: number, addPoints: number, addExpireDate: number, addLevel: number): Promise<any> {
         // 传入订单参数 to 数据库
         this.userId = userId;
         this.addPoints = addPoints;
@@ -71,7 +71,7 @@ export class PayService {
         // 递归生成订单号，直至无重复为止
         const generateTradeNoUntilNoRepeat = async () => {
             this.data.out_trade_no = this.generateTradeNo();
-            if (await this.elementExist('payertradeId', this.data.out_trade_no)) {
+            if (await this.elementExist('payerTradeId', this.data.out_trade_no)) {
                 generateTradeNoUntilNoRepeat();
             }
         }
@@ -131,13 +131,13 @@ export class PayService {
 
             // 支付结果 => 支付数据库
             const payInfo = new Pay();
-            payInfo.payertradeId = this.data.out_trade_no;
+            payInfo.payerTradeId = this.data.out_trade_no;
             payInfo.payerId = this.userId;
-            payInfo.payerpayDate = new Date();
+            payInfo.payerPayDate = new Date();
             payInfo.payerAddPoints = this.addPoints;
             payInfo.payerAddExpireDate = this.addExpireDate;
             payInfo.payerAddLevel = this.addLevel;
-            payInfo.payerHasAdded = false;
+            payInfo.payerHasAdded = true;
             console.log("payInfo为: ", payInfo);
             this.payRepository.save(payInfo);
 
@@ -148,15 +148,16 @@ export class PayService {
             // console.log("userLevel: ", userInfo.userLevel);
             // console.log("addLevel: ", this.addLevel);
             userInfo.userPoints = userInfo.userPoints + this.addPoints;
-            userInfo.userLevel = userInfo.userLevel + this.addLevel;
-            // 应该还有会员有效期的相关参数
-            // ...
+            userInfo.userLevel = this.addLevel;
+            // 会员有效期的相关参数
+            if (this.addExpireDate > 0) {
+                if (userInfo.userExpireDate < new Date())
+                    userInfo.userExpireDate.setDate(new Date().getDate() + this.addExpireDate);
+                else
+                    userInfo.userExpireDate.setDate(userInfo.userExpireDate.getDate() + this.addExpireDate);
+            }
             console.log("userInfo为: ", userInfo);
             this.userInfoRepository.save(userInfo);
-
-
-            // 将支付成功的消息告诉前端
-            // ... 
 
 
             return 'success';
@@ -168,13 +169,12 @@ export class PayService {
     }
 
     // 主动查询支付结果
-    public async queryPaymentStatus(payertradeId: string): Promise<object> {
-        let payInfo = null;
-        if (await this.elementExist('payertradeId', payertradeId)) {
+    public async queryPaymentStatus(payerTradeId: string): Promise<object> {
+        if (await this.elementExist('payerTradeId', payerTradeId)) {
             return {
                 isSuccess: true,
                 message: "用户已成功支付",
-                data: await this.elementExist('payertradeId', payertradeId)
+                data: await this.elementExist('payerTradeId', payerTradeId)
             }
         } else {
             return {
@@ -182,5 +182,14 @@ export class PayService {
                 message: "用户尚未成功支付"
             }
         }
+    }
+
+    // 获取支付记录
+    // 获取所有用户信息
+    async getPayInfos(payerId: number) {
+        let payListToGet: any = {};
+        payListToGet = await this.payRepository.find({ where: { payerId } });
+        console.log("payListToGet: ", JSON.stringify(payListToGet[0]));
+        return { isSuccess: true, message: '获取支付记录成功', data: payListToGet };
     }
 }
