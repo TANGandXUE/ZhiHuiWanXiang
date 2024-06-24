@@ -69,8 +69,22 @@ export class UploadController {
         }
     }
 
+    // 转换图片类型
+    @Post('img2img')
+    @UseGuards(JwtAuthGuard)
+    async img2img(@Req() req) {
+        try {
+            // 转换图片格式
+            fileInfos_url = await this.datatransService.img2img(req.body.fileInfos_url, { outputFormat: req.body.outputFormat, quality: req.body.quality })
+            return { isSuccess: true, message: '图片格式转换成功', data: fileInfos_url };
+        } catch (error) {
+            console.log(error);
+            return { isSuccess: false, message: '图片格式转换失败', data: error };
+        }
+    }
+
     // 自然语言转参数
-    @Post('txt2params')
+    @Post('txt2params') // txtToParams
     @UseGuards(JwtAuthGuard)
     async txt2params(@Req() req) {
         // 总参数列表
@@ -85,6 +99,7 @@ export class UploadController {
 
         // 返回总参数列表
         console.log(params);
+
         return { status, params };
     }
 
@@ -98,6 +113,8 @@ export class UploadController {
         let inputFileInfos_url = req.body.fileInfos_url;
         let result_fileInfos_url: any;
         let errorInfos: Array<{ fromAPI: string, message: Array<any> }> = [];
+
+        // object.key == object['key']
 
         // 调用meituauto接口------------------------------------------------
         // 定义一个封装了MeituAuto的Promise

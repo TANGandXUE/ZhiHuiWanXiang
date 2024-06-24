@@ -155,9 +155,8 @@ export class DatatransService {
     }
 
 
+    // 调用了CloudConvert服务商的图形文件转档服务
     cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_KEY);
-
-    
     async img2img(fileInfos_url: Array<{ fileName: string, fileURL: string }>, params: { outputFormat: string, quality: number }) {
 
 

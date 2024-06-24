@@ -20,6 +20,7 @@ export class RegisterController {
 
     }
 
+    // http://localhost:3000/user/register/post
     @Post('post')
     // 使用了中间件处理参数，代码重构时应改成守卫
     register(@Req() req) {

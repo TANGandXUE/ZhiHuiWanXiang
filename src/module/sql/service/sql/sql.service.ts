@@ -87,6 +87,8 @@ export class SqlService {
 
         let userToUpdate: any = {};
 
+        // userPhone: 18001633139
+
         if (userPhone !== '')
             userToUpdate = await this.userInfoRepository.findOne({ where: { userPhone } });
         else if (userEmail !== '')
@@ -324,6 +326,12 @@ export class SqlService {
                 { secret: jwtConstants.secret }
             )
         };
+    }
+
+
+
+    updateWorkInfo(){
+        
     }
 
 }

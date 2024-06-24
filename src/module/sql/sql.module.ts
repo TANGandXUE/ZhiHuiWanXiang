@@ -8,6 +8,7 @@ import { OssService } from './service/oss/oss.service';
 import { TestController } from './controller/test/test.controller';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { JwtService } from '@nestjs/jwt';
+import { OssController } from './controller/oss/oss.controller';
 
 
 @Module({
@@ -16,7 +17,7 @@ import { JwtService } from '@nestjs/jwt';
     ],
     providers: [SqlService, OssService, DatatransService, JwtService],
     exports: [SqlService, OssService],
-    controllers: [TestController]
+    controllers: [TestController, OssController]
 
 })
 export class SqlModule {

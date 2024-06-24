@@ -9,12 +9,15 @@ const writeFile = promisify(require('fs').writeFile); // 将writeFile转换为Pr
 export class OssService {
 
     // 初始化OSS客户端。请将以下参数替换为您自己的配置信息。
-    client = new OSS({
+    ossConfig: any = {
         region: process.env.OSS_REGION, // 示例：'oss-cn-hangzhou'，填写Bucket所在地域。
         accessKeyId: process.env.OSS_ACCESS_KEY_ID, // 确保已设置环境变量OSS_ACCESS_KEY_ID。
         accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET, // 确保已设置环境变量OSS_ACCESS_KEY_SECRET。
         bucket: process.env.OSS_BUCKET, // 示例：'my-bucket-name'，填写存储空间名称。
-    });
+        dir: "img/",
+    }
+
+    client = new OSS(this.ossConfig);
 
     //上传文件到OSS
     async uploadFiles(fileInfos: Array<{ fileName: string, filePath: string }>) {
@@ -118,5 +121,67 @@ export class OssService {
 
         return NoRenameFileInfos;
     }
+
+    // 重命名重名的文件(仅输入fileName)
+    async reNameFileName(fileName: string): Promise<string> {
+        let baseName = fileName; // 储存原始文件名（不含后缀）
+        let extension = ''; // 储存文件扩展名
+        let suffix = 1; // 初始化后缀为1
+
+        // 首次分割文件名和扩展名
+        if (fileName.includes('.')) {
+            [baseName, extension] = fileName.split('.');
+            extension = `.${extension}`;
+        }
+
+        // 循环直到找到一个唯一的文件名
+        while (true) {
+            const fullFileName = this.ossConfig.dir + baseName + (suffix > 1 ? `-${suffix}` : '') + extension; // 构建完整的带后缀的文件名
+            const exists = await this.isExistObject(fullFileName); // 检查文件名是否存在
+            if (!exists) {
+                // 如果文件名不存在，则跳出循环
+                break;
+            }
+            // 文件名存在，增加后缀并尝试下一个
+            suffix++; // 递增后缀
+        }
+
+        // 返回最终的唯一文件名
+        return baseName + (suffix > 1 ? `-${suffix}` : '') + extension;
+    }
+
+
+    // 生成Post签名和Post Policy
+    async getSignature(): Promise<any> {
+        const expiresInSeconds = Number(process.env.OSS_EXPIRES || '3600');
+        let dir: any = undefined;
+        if (this.ossConfig.dir) dir = this.ossConfig.dir;
+        const client = this.client;
+        const date = new Date();
+        date.setSeconds(date.getSeconds() + expiresInSeconds);
+
+        const policy = {
+            expiration: date.toISOString(),
+            conditions: [
+                ["content-length-range", 0, 1048576000], // 示例：文件大小限制为0到100MB
+                { bucket: client.options.bucket }, // 限制上传到指定Bucket
+                ['starts-with', '$Content-Type', 'image/'],
+            ],
+        };
+
+        if (dir) policy.conditions.push(['starts-with', '$key', dir]); // 添加前缀条件
+
+        const formData = await client.calculatePostSignature(policy);
+        const host = `https://${client.options.bucket}.${(await client.getBucketLocation()).location}.aliyuncs.com`;
+
+        return {
+            policy: formData.policy,
+            signature: formData.Signature,
+            ossAccessKeyId: formData.OSSAccessKeyId,
+            host,
+            dir,
+        };
+    }
+
 
 }

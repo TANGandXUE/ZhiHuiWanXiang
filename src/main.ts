@@ -7,7 +7,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import * as cors from 'cors';
 import * as dotenv from 'dotenv';
-import { log } from 'console';
 dotenv.config();
 
 async function bootstrap() {

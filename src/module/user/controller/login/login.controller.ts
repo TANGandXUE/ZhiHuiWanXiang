@@ -3,7 +3,6 @@ import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { LoginAuthGuard } from '../../others/auth.guard';
 import { JwtAuthGuard } from '../../others/jwt-auth.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { use } from 'passport';
 
 @Controller('/user/login')
 @ApiTags('用户登陆相关')
@@ -32,7 +31,7 @@ export class LoginController {
     // }
 
 
-    // 登陆，并获取包含全部payload(userInfo数据库中的所有对象)的JWT
+    // 登陆，并获取包含全部payload(userInfo数据库中的所有属性)的JWT
     // 如果数据库对象有更新，必须要去sql.service.ts和jwt.strategy.ts中往payload中新增对应的key
     @UseGuards(LoginAuthGuard)
     @ApiOperation({ summary: '用户登陆' })
