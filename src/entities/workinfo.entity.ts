@@ -1,11 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, CreateDateColumn, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class WorkInfo {
 
     //工作Id
-    @PrimaryGeneratedColumn()
-    workId: number;
+    @PrimaryColumn({ type: "varchar" })
+    workId: string;
 
     //用户Id
     @Column({ type: "int" })
@@ -15,9 +15,9 @@ export class WorkInfo {
     @Column({ type: "varchar" })
     workText: string;
 
-    //使用的API
-    @Column({ type: "varchar" })
-    workApi: string;
+    // 使用的API
+    @Column('simple-array')
+    workApiList: string[];
 
     //工作状态(processing, completed, failed)
     @Column({ type: "varchar" })
@@ -36,7 +36,15 @@ export class WorkInfo {
     workUsePoints: number;
 
     //工作结果(链接)
-    @Column({ type: "varchar" })
-    workResult: string;
+    @Column('simple-array')
+    workResult: object[];
+
+    //错误信息
+    @Column('simple-array')
+    workErrorInfos: object[];
+
+    //是否是生成预览图
+    @Column({ type: "boolean" })
+    isPreview: boolean;
 
 }

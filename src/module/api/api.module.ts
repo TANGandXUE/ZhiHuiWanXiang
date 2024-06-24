@@ -12,11 +12,14 @@ import { PayService } from './service/pay/pay.service';
 import { Pay } from 'src/entities/pay.entity';
 import { UserInfo } from 'src/entities/userinfo.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProcessService } from './service/process/process.service';
+import { ProcessController } from './controller/process/process.controller';
+import { WorkInfo } from 'src/entities/workinfo.entity';
 
 @Module({
-  imports: [SqlModule,TypeOrmModule.forFeature([Pay, UserInfo])],
-  controllers: [ApiController, PayController],
-  providers: [UploadService, IsimgService, DatatransService, MeituautoService, ChatqwenService, AlimsgService, PayService],
+  imports: [SqlModule,TypeOrmModule.forFeature([Pay, UserInfo, WorkInfo])],
+  controllers: [ApiController, PayController, ProcessController],
+  providers: [UploadService, IsimgService, DatatransService, MeituautoService, ChatqwenService, AlimsgService, PayService, ProcessService],
   exports: [UploadService, ChatqwenService, MeituautoService, AlimsgService],
 })
 export class ApiModule {}
