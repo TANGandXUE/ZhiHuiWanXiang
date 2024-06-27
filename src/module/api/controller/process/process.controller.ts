@@ -33,7 +33,17 @@ export class ProcessController {
     @Post('query')
     @UseGuards(JwtAuthGuard)
     async queryProcess(@Req() req) {
+        // console.log('啊啊啊啊啊啊啊aaaaa: ', await this.processService.queryProcess(req.body.workId));
         return await this.processService.queryProcess(req.body.workId);
+    }
+
+    // 根据JWT获取支付记录
+    @UseGuards(JwtAuthGuard)
+    @Get('syncinfos')
+    async syncInfos(@Req() req) {
+        // userId是必然不会变动的信息，所以用UseGuards来从JWT中取出，以从数据库中获取动态信息
+        const workUserId = req.user.userId;
+        return await this.processService.getWorkInfos(workUserId);
     }
 
 }

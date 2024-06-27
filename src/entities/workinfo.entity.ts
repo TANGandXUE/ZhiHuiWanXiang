@@ -12,7 +12,7 @@ export class WorkInfo {
     workUserId: number;
 
     //使用的自然语言
-    @Column({ type: "varchar" })
+    @Column({ type: "longtext" })
     workText: string;
 
     // 使用的API
@@ -27,7 +27,7 @@ export class WorkInfo {
     @CreateDateColumn({ type: "timestamp" })
     workStartTime: Date;
 
-    //工作耗时(秒)
+    //工作耗时(毫秒)
     @Column({ type: "int" })
     workUseTime: number;
 
@@ -36,11 +36,11 @@ export class WorkInfo {
     workUsePoints: number;
 
     //工作结果(链接)
-    @Column('simple-array')
+    @Column('json')
     workResult: object[];
 
     //错误信息
-    @Column('simple-array')
+    @Column('json')
     workErrorInfos: object[];
 
     //是否是生成预览图

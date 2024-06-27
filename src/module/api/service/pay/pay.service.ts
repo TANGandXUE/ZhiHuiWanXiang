@@ -185,7 +185,6 @@ export class PayService {
     }
 
     // 获取支付记录
-    // 获取所有用户信息
     async getPayInfos(payerId: number) {
         let payListToGet: any = {};
         payListToGet = await this.payRepository.find({ where: { payerId } });

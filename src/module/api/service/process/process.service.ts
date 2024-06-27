@@ -5,6 +5,7 @@ import { ChatqwenService } from '../chatqwen/chatqwen.service';
 import { MeituautoService } from '../meituauto/meituauto.service';
 import { DatatransService } from 'src/service/datatrans/datatrans.service';
 import { OssService } from 'src/module/sql/service/oss/oss.service';
+import { SqlService } from 'src/module/sql/service/sql/sql.service';
 
 // 数据库相关
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +13,10 @@ import { UserInfo } from 'src/entities/userinfo.entity';
 import { WorkInfo } from 'src/entities/workinfo.entity';
 import { getApiList } from 'src/others/apiList';
 import { Repository } from 'typeorm';
+
+// .env
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 
 @Injectable()
@@ -24,6 +29,7 @@ export class ProcessService {
         private readonly meituautoService: MeituautoService,
         private readonly datatransService: DatatransService,
         private readonly ossService: OssService,
+        private readonly sqlService: SqlService,
 
         // 数据库相关
         @InjectRepository(UserInfo)
@@ -76,22 +82,45 @@ export class ProcessService {
         console.log('workInfo: ', workInfo);
 
         // 启动异步修图任务
-        this.txt2params(workInfo, fileInfos_url, useApiList);
+        this.img2img(workInfo, fileInfos_url, useApiList);
 
         return { isSuccess: true, message: '发起修图任务成功', data: workId };
 
     }
 
-    // 查询修图相关信息
-    async queryProcess(workId: string): Promise<{ isSuccess: boolean, message: string, data: any }> {
-
-        // 根据workId获取workInfo
-        const workInfo = await this.workInfoRepository.findOne({ where: { workId } });
-
-        if (!workInfo)
-            return { isSuccess: false, message: '该workId对应的任务不存在', data: null };
-        else
-            return { isSuccess: true, message: '查询修图状态成功', data: workInfo };
+    // 图片格式转换
+    private async img2img(
+        workInfo: {
+            workId: string,
+            workUserId: number,
+            workText: string,
+            workApiList: Array<string>,
+            workStartTime: Date,
+            workStatus: string,
+            workUsePoints: number,
+            workUseTime: number,
+            workResult: Array<any>,
+            workErrorInfos: Array<any>,
+            isPreview: boolean,
+        },
+        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
+        useApiList: Array<string>,
+    ) {
+        
+        // 根据执行结果进行下一步操作
+        try {
+            fileInfos_url = await this.datatransService.img2img(fileInfos_url, { outputFormat: 'jpg', quality: 100 })
+            // 传值，接力执行修图任务
+            this.txt2params(workInfo, fileInfos_url, useApiList);
+        } catch (error) {
+            console.log(error);
+            workInfo.workStatus = 'failed';
+            workInfo.workErrorInfos.push({
+                fromAPI: 'txt2params',
+                message: `文本转参数时出现错误，错误信息为：'${error}'`,
+            })
+            this.workInfoRepository.save(workInfo);
+        }
 
     }
 
@@ -176,7 +205,7 @@ export class ProcessService {
                 workInfo.workStatus = 'completed';
                 // workInfo.workUsePoints不用写，因为如果除了预览图没有别的图了，也就不用扣除点数了，也就不用修改默认的0
                 this.workInfoRepository.save(workInfo);
-                console.log('workInfo: ', workInfo);
+                // console.log('workInfo: ', workInfo);
                 return;
             }
         }
@@ -241,12 +270,68 @@ export class ProcessService {
             this.workInfoRepository.save(workInfo);
         } else {
             workInfo.workStatus = 'completed';
-            // workInfo.workUsePoints还没写
-            // ...
+            workInfo.workUsePoints = await this.deductPoints(workInfo);
             this.workInfoRepository.save(workInfo);
-            console.log('workInfo: ', workInfo);
+            console.log('1workInfo: ', workInfo);
         }
 
+    }
+
+
+    // 扣除点数
+    private async deductPoints(
+        workInfo: {
+            workId: string,
+            workUserId: number,
+            workText: string,
+            workApiList: Array<string>,
+            workStartTime: Date,
+            workStatus: string,
+            workUsePoints: number,
+            workUseTime: number,
+            workResult: Array<any>,
+            workErrorInfos: Array<any>,
+            isPreview: boolean,
+        },
+    ) {
+
+        // 计算扣除点数
+        const baseDeductPoints = Number(process.env.DEDUCT_POINTS_FOR_PROCESS || 10);
+        const PointsToDeduct = workInfo.workResult.length * baseDeductPoints;
+
+        // 查找用户信息并扣点
+        const userInfos = await this.userInfoRepository.findOne({ where: { userId: workInfo.workUserId } })
+        await this.sqlService.deductPoints(userInfos.userPhone, userInfos.userEmail, PointsToDeduct)
+        // console.log('UserInfo: ', userInfos);
+
+        
+        console.log('2workInfo: ', workInfo);
+
+        return PointsToDeduct;
+
+    }
+
+
+    // 查询修图相关信息
+    async queryProcess(workId: string): Promise<{ isSuccess: boolean, message: string, data: any }> {
+
+        // 根据workId获取workInfo
+        const workInfo = await this.workInfoRepository.findOne({ where: { workId } });
+        console.log('啊啊啊啊啊啊啊啊啊啊啊啊: ', workInfo);
+
+        if (!workInfo)
+            return { isSuccess: false, message: '该workId对应的任务不存在', data: null };
+        else
+            return { isSuccess: true, message: '查询修图状态成功', data: workInfo };
+
+    }
+
+    // 获取工作记录
+    async getWorkInfos(workUserId: number) {
+        let workListToGet: any = {};
+        workListToGet = await this.workInfoRepository.find({ where: { workUserId } });
+        console.log("workListToGet: ", JSON.stringify(workListToGet[0]));
+        return { isSuccess: true, message: '获取工作记录成功', data: workListToGet };
     }
 
 
