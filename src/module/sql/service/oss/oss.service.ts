@@ -165,7 +165,7 @@ export class OssService {
             conditions: [
                 ["content-length-range", 0, 1048576000], // 示例：文件大小限制为0到100MB
                 { bucket: client.options.bucket }, // 限制上传到指定Bucket
-                // ['starts-with', '$Content-Type', 'image/'],
+                ['starts-with', '$Content-Type', 'image/'],
             ],
         };
 
