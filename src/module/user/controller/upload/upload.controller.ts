@@ -50,12 +50,13 @@ export class UploadController {
             // 写入OSS
             fileInfos_url = await this.ossService.uploadFiles(fileInfos);
             // 转换图片格式
-            fileInfos_url = await this.datatransService.img2img(fileInfos_url,
+            const responseData = await this.datatransService.img2img(fileInfos_url,
                 {
                     outputFormat: 'jpg',
                     quality: 100,
                 }
             )
+            fileInfos_url = responseData.data;
             console.log("fileInfos_url:", fileInfos_url);
             if (fileInfos_url[0] !== undefined) {
                 return fileInfos_url;
@@ -75,7 +76,8 @@ export class UploadController {
     async img2img(@Req() req) {
         try {
             // 转换图片格式
-            fileInfos_url = await this.datatransService.img2img(req.body.fileInfos_url, { outputFormat: req.body.outputFormat, quality: req.body.quality })
+            const responseData = await this.datatransService.img2img(req.body.fileInfos_url, { outputFormat: req.body.outputFormat, quality: req.body.quality });
+            fileInfos_url = responseData.data;
             return { isSuccess: true, message: '图片格式转换成功', data: fileInfos_url };
         } catch (error) {
             console.log(error);

@@ -43,7 +43,9 @@ export class MeituautoService {
     private parameter = {};
 
 
-    private async meitu_auto_startProcessSingle(fileInfo_url: { fileName: string, fileURL: string }): Promise<string> {
+    private async meitu_auto_startProcessSingle(fileInfo_url: { fileName: string, fileURL: string })
+    // : Promise<{ isSuccess: Boolean, message: string, data: any }> 
+    {
         const query = {
             api_key: this.apiKey,
             api_secret: this.apiSecret,
@@ -98,6 +100,11 @@ export class MeituautoService {
             console.log('queryAsyncResult方法内的responseData: ', response.data)
             if (response.data.code === 29901 || response.data.code == 0) {
                 return response.data;
+            } else if (
+                // 触发QPS限制
+                response.data.code === 90024
+            ) {
+                return 90024;
             } else {
                 const errorFileName = msgIdToFileNameMap.get(msgId);
                 errorMessages.push(`queryAsyncResult方法内，查询${errorFileName}的任务时出现异常。错误代码为${response.data.code}，错误信息为：'${response.data.message}'`);
@@ -589,7 +596,21 @@ export class MeituautoService {
 
                     const responseData = await this.queryAsyncResult(msgId);
 
-                    if (responseData.code === 0) {
+                    if (responseData === 90024) {
+                        // 重新使用该msgId对应的fileInfo_url发起任务请求，然后push进msgIds中
+                        console.log('msgIdToFileNameMap:', Array.from(msgIdToFileNameMap.entries()));
+                        const fileInfo_url = fileInfos_url_input.find(fileInfo_url => fileInfo_url.fileName === msgIdToFileNameMap.get(msgId));
+                        console.log('fileInfo_url: ', fileInfo_url);
+                        const newMsgId = await this.meitu_auto_startProcessSingle(fileInfo_url);
+                        msgIdToFileNameMap.set(newMsgId, fileInfo_url.fileName);
+                        msgIds.splice(msgIds.indexOf(msgId), 1);
+                        msgIds.push(newMsgId);
+                        // console.log(`msgId ${msgId} 重新发起任务请求，新的msgId为${newMsgId}`);
+                        // 等待1秒
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+
+                    else if (responseData.code === 0) {
                         const originalFileName = msgIdToFileNameMap.get(msgId);
                         fileInfos_url_output.push(
                             {
@@ -602,6 +623,7 @@ export class MeituautoService {
                 } catch (error) {
                     // 出错了也要移除这个msgId的检查，但要拦截错误，不要继续throw error了，否则会导致meitu_auto这个函数的返回值为错误，从而让外部拿不到任何结果
                     msgIds.splice(msgIds.indexOf(msgId), 1);
+                    console.log('error为：', error);
                 }
                 console.log(`当前剩余msgIds长度：${msgIds.length}，已查询${queryCount}次`);
 

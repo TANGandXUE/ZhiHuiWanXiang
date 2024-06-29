@@ -12,11 +12,14 @@ dotenv.config();
 @Injectable()
 export class DatatransService {
 
+    // 公共参数
+    timeout_img2img = Number(process.env.IMG2IMG_TIMEOUT || 60000)
+
     //输入包含media_data属性的base64编码信息，返回包含media_data属性的file对象
     async base64toFile(base64_info_list) {
 
         console.log('base64_info_ilst: ', base64_info_list);
-        
+
         const promises = base64_info_list.map(async (base64_info) => {
             if (base64_info.media_data) {
                 const image_buffer = Buffer.from(base64_info.media_data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
@@ -37,13 +40,13 @@ export class DatatransService {
 
 
     // 将fileInfos(含本地路径)转换成fileInfos(含base64编码)
-    async filetoBase64(fileInfos: Array<{ fileName: string, filePath: string }>){
+    async filetoBase64(fileInfos: Array<{ fileName: string, filePath: string }>) {
         const fileInfos_base64 = fileInfos.map(async (fileInfo) => {
             const buffer = await fs.readFileSync(fileInfo.filePath);
 
             let contentType: any;
 
-            if(fileInfo.fileName.split('.').pop() === 'jpg'){
+            if (fileInfo.fileName.split('.').pop() === 'jpg') {
                 contentType = 'image/jpeg';
             } else {
                 contentType = `image/${fileInfo.fileName.split('.').pop()}`;
@@ -57,6 +60,28 @@ export class DatatransService {
         })
 
         return await Promise.all(fileInfos_base64);
+    }
+
+    // 删除本地文件
+    async deleteFileInfos(fileInfos: Array<{ fileName: string, filePath: string }>): Promise<{ isSuccess: boolean, message: string, data: any }> {
+        const failedDeletions: string[] = []; // 用于收集删除失败的文件信息
+
+        for (const fileInfo of fileInfos) {
+            try {
+                await fs.promises.unlink(fileInfo.filePath); // 尝试删除文件
+            } catch (error) {
+                // 如果删除失败，记录该文件的信息
+                failedDeletions.push(`Failed to delete ${fileInfo.fileName} at path ${fileInfo.filePath}: ${error.message}`);
+            }
+        }
+
+        // 根据是否有失败的删除操作决定返回值
+        if (failedDeletions.length === 0) {
+            return { isSuccess: true, message: "All files deleted successfully.", data: null };
+        } else {
+            const errorMessage = JSON.stringify(failedDeletions); // 转换失败信息为JSON字符串
+            return { isSuccess: false, message: `Some files failed to delete: ${errorMessage}`, data: null };
+        }
     }
 
 
@@ -155,9 +180,11 @@ export class DatatransService {
     }
 
 
-    // 调用了CloudConvert服务商的图形文件转档服务
+    // 调用了CloudConvert服务商的图片转档服务
     cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_KEY);
-    async img2img(fileInfos_url: Array<{ fileName: string, fileURL: string }>, params: { outputFormat: string, quality: number }) {
+    async img2img(fileInfos_url: Array<{ fileName: string, fileURL: string }>, params: { outputFormat: string, quality: number }): Promise<{ isSuccess: boolean, message: string, data: any }> {
+        let isSuccess: boolean = true;
+        let errorInfos: Array<string> = [];
 
 
         // 创建一个用于存储所有job promise的数组
@@ -169,7 +196,7 @@ export class DatatransService {
                 c: params.quality,
             });
 
-            //如果输入拓展名和输出的一样，则随便定义一个固定的jobID，直接返回
+            //如果输入拓展名和输出的一样，则随便定义一个固定的jobID，直接返回，意思就是不用修图了
             if (path.extname(fileInfo_url.fileName).toLowerCase().substring(1) === params.outputFormat) {
                 return { jobId: 100100100, fileInfo_url };
             };
@@ -177,23 +204,23 @@ export class DatatransService {
             const job = await this.cloudConvert.jobs.create({
                 tasks: {
                     importFile: {
-                        operation:      "import/url",
-                        url:            fileInfo_url.fileURL,
+                        operation: "import/url",
+                        url: fileInfo_url.fileURL,
                     },
                     convertFile: {
-                        operation:      "convert",
-                        input_format:   path.extname(fileInfo_url.fileName).toLowerCase().substring(1),
-                        output_format:  params.outputFormat,
-                        engine:         "imagemagick",
-                        input:          "importFile",
-                        fit:            "max",
-                        strip:          false,
-                        quality:        params.quality,
+                        operation: "convert",
+                        input_format: path.extname(fileInfo_url.fileName).toLowerCase().substring(1),
+                        output_format: params.outputFormat,
+                        engine: "imagemagick",
+                        input: "importFile",
+                        fit: "max",
+                        strip: false,
+                        quality: params.quality,
                     },
                     exportFile: {
-                        operation:      "export/url",
-                        input:          "convertFile",
-                        inline:         true,
+                        operation: "export/url",
+                        input: "convertFile",
+                        inline: true,
                         archive_multiple_files: false,
                     },
                 },
@@ -205,39 +232,82 @@ export class DatatransService {
             return { jobId: job.id, fileInfo_url };
         });
 
+        console.log('调用了CloudConvert服务商的图片转档服务fileInfos_url: ', fileInfos_url);
+
         // 使用Promise.all等待所有job创建完成
-        const jobInfoArray = await Promise.all(jobPromises);
+        let jobInfoArray: Array<{ jobId: number, fileInfo_url: { fileName: string, fileURL: string } }> = [];
+        try {
+            jobInfoArray = await Promise.all(jobPromises);
+        } catch (error) {
+            console.error('创建job时出错：', error);
+            if (error.response.status === 422) {
+                return { isSuccess: false, message: `图片类型转换错误：输入了不支持的图片类型`, data: [] }
+            }
+            else return { isSuccess: false, message: `图片类型转换错误，错误代码：${error.response.status}，错误内容：${error.response.statusText}`, data: [] };
+        }
 
         // 对于每个job，启动一个异步操作来等待其完成并获取URL，不阻塞
         const resultPromises = jobInfoArray.map(async ({ jobId, fileInfo_url }) => {
 
-            //如果jobId是我随便定义的那个，那么直接返回
+            //如果jobId是我随便定义的那个，那么直接返回，因为原拓展名和输出格式一样，不需要修图
             if (jobId === 100100100) {
-                return { 
+                return {
                     fileName: fileInfo_url.fileName,
-                    fileURL: fileInfo_url.fileURL 
+                    fileURL: fileInfo_url.fileURL
                 };
             }
 
+            const timeoutPromise = new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    reject(new Error(`ID为 ${jobId} 的图片类型转换任务超时(${this.timeout_img2img / 1000}秒)`));
+                }, this.timeout_img2img);
+            });
+
             try {
-                const job = await this.cloudConvert.jobs.wait(jobId);
-                if (job.status === 'error') {
-                    throw new Error(`Job ${jobId} failed`);
+                // 使用Promise.race等待job完成或超时
+                const result = await Promise.race([this.cloudConvert.jobs.wait(jobId), timeoutPromise]);
+
+                if (result instanceof Error) {
+                    // 这里意味着是超时错误
+                    errorInfos.push(`ID为${jobId}的任务超时(${this.timeout_img2img / 1000}秒)`);
+                    console.error(`ID为${jobId}的任务超时, 错误信息：${result.message}`);
+                    return { jobId, isSuccess: false, errorMessage: result.message };
+                } else {
+                    if (result.status === 'error') {
+                        errorInfos.push(`ID为${jobId}的任务失败, 错误代码: ${result.tasks[0].code}, 错误信息：${result.tasks[0].message}`);
+                        console.log(`ID为${jobId}的任务失败, 错误代码: ${result.tasks[0].code}, 错误信息：${result.tasks[0].message}`);
+                        return null;
+                    } else {
+                        const resultFile = this.cloudConvert.jobs.getExportUrls(result)[0];
+                        const resultFileName = `${fileInfo_url.fileName.substring(0, fileInfo_url.fileName.lastIndexOf('.'))}.${params.outputFormat}`;
+                        return { fileName: resultFileName, fileURL: resultFile.url };
+                    }
                 }
-                const resultFile = this.cloudConvert.jobs.getExportUrls(job)[0];
-                const resultFileName = `${fileInfo_url.fileName.substring(0, fileInfo_url.fileName.lastIndexOf('.'))}.${params.outputFormat}`;
-                return { fileName: resultFileName, fileURL: resultFile.url };
             } catch (error) {
-                console.error(`Job ${jobId} failed: ${error.message}`);
-                // 可以选择抛出错误或处理它，这里为了简单直接忽略了错误
+                // 这里捕获的是非超时的其他异常
+                errorInfos.push(`ID为${jobId}的任务失败, 错误信息：${error.message}`);
+                console.error(`ID为${jobId}的任务失败, 错误信息：${error.message}`);
+                return null;
             }
         });
 
         // 等待所有结果处理完成
-        const result_urls = await Promise.all(resultPromises);
-        // console.log("result_urls这里执行到了");
+        try {
+            const result_urls = (await Promise.all(resultPromises)).filter(Boolean);
+            // console.log('result_urls啊啊啊啊啊啊啊aaaa:', result_urls);
+            if (errorInfos.length > 0) {
+                if (result_urls.length === 0)   // 没有成功
+                    return { isSuccess: false, message: JSON.stringify(errorInfos), data: [] };
+                else    // 部分成功
+                    return { isSuccess, message: JSON.stringify(errorInfos), data: result_urls };
+            }
+            else
+                return { isSuccess, message: '图片类型转换成功', data: result_urls };
+        } catch (error) {
+            return { isSuccess: false, message: `图片类型转换错误：${error}`, data: [] };
+        }
 
-        return result_urls;
+
     }
 
 
