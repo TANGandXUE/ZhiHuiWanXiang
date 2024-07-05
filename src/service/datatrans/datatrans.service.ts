@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import { promisify } from 'util';
+import { OssService } from 'src/module/sql/service/oss/oss.service';
 const CloudConvert = require('cloudconvert');
 const fsUnlink = promisify(fs.unlink);
 import * as dotenv from 'dotenv';
@@ -12,10 +13,12 @@ dotenv.config();
 @Injectable()
 export class DatatransService {
 
+    constructor(private readonly ossService: OssService) { }
+
     // 公共参数
     timeout_img2img = Number(process.env.IMG2IMG_TIMEOUT || 60000)
 
-    //输入包含media_data属性的base64编码信息，返回包含media_data属性的file对象
+    // 输入包含media_data属性的base64编码信息，返回包含media_data属性的file对象
     async base64toFile(base64_info_list) {
 
         console.log('base64_info_ilst: ', base64_info_list);
@@ -84,9 +87,7 @@ export class DatatransService {
         }
     }
 
-
-
-    //将windows路径转换为linux路径
+    // 将windows路径转换为linux路径
     convertWindowsSlashes(windowsPathArray: string[]): string[] {
         return windowsPathArray.map(path => path.replace(/\\/g, '/'));
     }
@@ -142,7 +143,7 @@ export class DatatransService {
     }
 
 
-    //识别图像类型并转换为png格式
+    // 识别图像类型并转换为png格式
     async convertToPng(fileInfos: Array<{ fileName: string, filePath: string }>): Promise<{ resultFileName: string, resultFilePath: string }[]> {
         const result: Array<{ resultFileName: string, resultFilePath: string }> = [];
 
@@ -183,13 +184,15 @@ export class DatatransService {
     // 调用了CloudConvert服务商的图片转档服务
     cloudConvert = new CloudConvert(process.env.CLOUDCONVERT_KEY);
     async img2img(fileInfos_url: Array<{ fileName: string, fileURL: string }>, params: { outputFormat: string, quality: number }): Promise<{ isSuccess: boolean, message: string, data: any }> {
+        console.log('fileInfos_url: ', fileInfos_url);
         let isSuccess: boolean = true;
         let errorInfos: Array<string> = [];
 
 
         // 创建一个用于存储所有job promise的数组
         const jobPromises = fileInfos_url.map(async (fileInfo_url) => {
-            console.log('拓展名为：', path.extname(fileInfo_url.fileName).toLowerCase());
+            console.log('拓展名为：', path.extname(fileInfo_url.fileName).toLowerCase().substring(1));
+            // console.log('fileName: ', fileInfo_url.fileName);
             console.log({
                 a: path.extname(fileInfo_url.fileName).toLowerCase().substring(1),
                 b: params.outputFormat,
@@ -310,5 +313,71 @@ export class DatatransService {
 
     }
 
+    // JPEG图像压缩
+    async imgCompress(fileInfos_url: Array<{ fileName: string, fileURL: string }>, quality: number) {
+
+        console.log(`fileInfos_url: ${JSON.stringify(fileInfos_url)}, quality: ${quality}, type of quality: ${typeof quality}`)
+
+        try {
+            // 将url转换为本地文件
+            const fileInfos = await this.urlToLocal(fileInfos_url, 'jpg');
+            console.log(`fileInfos: ${JSON.stringify(fileInfos)}`);
+
+
+            const startCompress = fileInfos.map(async (fileInfo) => {
+
+                // 分割路径并给出新路径
+                const { dir, name, ext } = path.parse(fileInfo.filePath);
+                const outputFileName = `${name}_preview${ext}`;
+                const outputFilePath = path.join(dir, outputFileName);
+                await sharp(fileInfo.filePath).jpeg({ quality }).toFile(outputFilePath);
+                fileInfo.fileName = outputFileName;
+                fileInfo.filePath = outputFilePath;
+            });
+
+            await Promise.all(startCompress);
+            console.log("fileInfos:", fileInfos);
+            return { isSuccess: true, message: '图片压缩成功', data: await this.ossService.uploadFiles(fileInfos) }
+
+        } catch (e) {
+            return { isSuccess: false, message: `图片压缩错误：${e}`, data: [] };
+        }
+    }
+
+    // JPEG图像压缩, 根据指定最大长宽高压缩
+    async imgCompressBySize(fileInfos_url: Array<{ fileName: string, fileURL: string }>, maxWidth: number, maxHeight: number) {
+
+        console.log(`fileInfos_url: ${JSON.stringify(fileInfos_url)}, maxWidth: ${maxWidth}, maxHeight: ${maxHeight}`);
+
+        try {
+            // 将url转换为本地文件
+            const fileInfos = await this.urlToLocal(fileInfos_url, 'jpg');
+            console.log(`fileInfos: ${JSON.stringify(fileInfos)}`);
+
+            const startCompress = fileInfos.map(async (fileInfo) => {
+
+                // 分割路径并给出新路径
+                const { dir, name, ext } = path.parse(fileInfo.filePath);
+                const outputFileName = `${name}_preview${ext}`;
+                const outputFilePath = path.join(dir, outputFileName);
+
+                // 使用resize方法按最大宽度和高度压缩，避免图片放大
+                await sharp(fileInfo.filePath)
+                    .resize(maxWidth, maxHeight, { fit: 'inside', withoutEnlargement: true }) // fit: 'inside' 保持原图比例缩放至指定尺寸内
+                    .jpeg() // 依然转换为JPEG格式
+                    .toFile(outputFilePath);
+
+                fileInfo.fileName = outputFileName;
+                fileInfo.filePath = outputFilePath;
+            });
+
+            await Promise.all(startCompress);
+            console.log("fileInfos:", fileInfos);
+            return { isSuccess: true, message: '图片压缩成功', data: await this.ossService.uploadFiles(fileInfos) };
+
+        } catch (e) {
+            return { isSuccess: false, message: `图片压缩错误：${e}`, data: [] };
+        }
+    }
 
 }

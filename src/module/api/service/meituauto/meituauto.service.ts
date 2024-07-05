@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Injectable } from '@nestjs/common';
 
 import * as dotenv from 'dotenv'; // .env相关
+import { Any } from 'typeorm';
 dotenv.config();  // .env相关
 
 // MeituAuto最多查询次数
@@ -20,6 +21,7 @@ export class MeituautoService {
 
     // 公开参数，即外部可以修改的参数
     public publicParams = {
+        // 原参数------------------------------
         bright_low_dark_image_flag: 0,
         highpass_background_coef: 0,
         highpass_body_coef: 0,
@@ -30,6 +32,126 @@ export class MeituautoService {
         radio: 0,
         face_beauty_alpha: [0, 0, 0, 0, 0],
         face_restore_alpha: [0, 0, 0, 0, 0],
+
+        // 20240630新增参数--------------------
+        // 基础参数
+        exposure: 0,            // 曝光
+        constrast: 0,           // 对比度
+        sharpness: 0,           // 清晰度
+        vibrance: 0,            // 自然饱和度
+        shadow: 0,              // 阴影
+        temperature: 0,         // 色温
+        hue: 0,                 // 色调
+        saturability: 0,        // 饱和度
+        highlight: 0,           // 高光
+        blackness: 0,           // 黑色
+        whiteness: 0,           // 白色
+        // 美颜参数
+        skin_hdr_alpha: [0, 0, 0, 0, 0],                // 皮肤透亮
+        skin_white_alpha: [0, 0, 0, 0, 0],              // 皮肤美白
+        skin_red_alpha: [0, 0, 0, 0, 0],                // 皮肤红润
+        body_dullness_remove_alpha: [0, 0, 0, 0, 0],    // 肤色统一
+        multibody_beauty: [0, 0, 0, 0, 0],              // 美型（多人液化）
+        skin_fleck_clean_flag: [0, 0, 0, 0, 0],         // 祛斑祛痘_身体
+        flaw_clean_alpha: [0, 0, 0, 0, 0],              // 身体去瑕疵
+        fluffy_hair: [0, 0, 0, 0, 0],                   // 头发蓬松
+        white_teeth: [0, 0, 0, 0, 0],                   // 牙齿美白
+        teeth_beauty: [0, 0, 0, 0, 0],                  // 牙齿修复
+        heighten: 0,                                    // AI增高
+        black_hair: 0,                                  // 发色加深
+        // HSL色彩调整相关属性
+        hsl_hue_red: 0,                                 // 色相_红色，调整红色的主色调
+        hsl_hue_orange: 0,                              // 色相_橙色，调整橙色的主色调
+        hsl_hue_yellow: 0,                              // 色相_黄色，调整黄色的主色调
+        hsl_hue_green: 0,                               // 色相_绿色，调整绿色的主色调
+        hsl_hue_aqua: 0,                                // 色相_浅绿，调整浅绿色的主色调
+        hsl_hue_blue: 0,                                // 色相_蓝色，调整蓝色的主色调
+        hsl_hue_violet: 0,                              // 色相_紫罗兰，调整紫罗兰色的主色调
+        hsl_hue_magenta: 0,                             // 色相_品红，调整品红色的主色调
+        hsl_sat_red: 0,                                 // 饱和度_红色，控制红色的纯度
+        hsl_sat_orange: 0,                              // 饱和度_橙色，控制橙色的纯度
+        hsl_sat_yellow: 0,                              // 饱和度_黄色，控制黄色的纯度
+        hsl_sat_green: 0,                               // 饱和度_绿色，控制绿色的纯度
+        hsl_sat_aqua: 0,                                // 饱和度_浅绿，控制浅绿色的纯度
+        hsl_sat_blue: 0,                                // 饱和度_蓝色，控制蓝色的纯度
+        hsl_sat_violet: 0,                              // 饱和度_紫罗兰，控制紫罗兰色的纯度
+        hsl_sat_magenta: 0,                             // 饱和度_品红，控制品红色的纯度
+        hsl_luma_red: 0,                                // 明亮度_红色，调整红色区域的明暗度
+        hsl_luma_orange: 0,                             // 明亮度_橙色，调整橙色区域的明暗度
+        hsl_luma_yellow: 0,                             // 明亮度_黄色，调整黄色区域的明暗度
+        hsl_luma_green: 0,                              // 明亮度_绿色，调整绿色区域的明暗度
+        hsl_luma_aqua: 0,                               // 明亮度_浅绿，调整浅绿色区域的明暗度
+        hsl_luma_blue: 0,                               // 明亮度_蓝色，调整蓝色区域的明暗度
+        hsl_luma_violet: 0,                             // 明亮度_紫罗兰，调整紫罗兰色区域的明暗度
+        hsl_luma_magenta: 0,                            // 明亮度_品红，调整品红色区域的明暗度
+        // 脸型调整
+        ai_shrink_head: [0, 0, 0, 0, 0],                             // 缩头
+        face_forehead: [0, 0, 0, 0, 0],                              // 额头调整
+        middle_half_of_face: [0, 0, 0, 0, 0],                        // 中庭调整
+        bottom_half_of_face: [0, 0, 0, 0, 0],                        // 下庭调整
+        philtrum_warp: [0, 0, 0, 0, 0],                              // 人中调整
+        narrow_face: [0, 0, 0, 0, 0],                                // 脸宽调整
+        cheekbone_left: [0, 0, 0, 0, 0],                             // 颧骨_左调整
+        cheekbone_right: [0, 0, 0, 0, 0],                            // 颧骨_右调整
+        temple_left: [0, 0, 0, 0, 0],                                // 太阳穴_左调整
+        temple_right: [0, 0, 0, 0, 0],                               // 太阳穴_右调整
+        mandible_left: [0, 0, 0, 0, 0],                              // 下颌_左调整
+        mandible_right: [0, 0, 0, 0, 0],                             // 下颌_右调整
+        jaw_trans: [0, 0, 0, 0, 0],                                  // 下巴高度调整
+        face_trans: [0, 0, 0, 0, 0],                                 // 下巴宽度调整
+        // 五官调整
+        nasal_tip: [0, 0, 0, 0, 0],                                             // 鼻子_鼻尖调整
+        bridge_nose: [0, 0, 0, 0, 0],                                           // 鼻子_鼻梁调整
+        shrink_nose: [0, 0, 0, 0, 0],                                           // 鼻子_鼻翼调整
+        scale_nose: [0, 0, 0, 0, 0],                                            // 鼻子_大小调整
+        nose_longer: [0, 0, 0, 0, 0],                                           // 鼻子_长短调整
+        nasal_root: [0, 0, 0, 0, 0],                                            // 鼻子_山根调整
+        upperlip_enhance: [0, 0, 0, 0, 0],                                      // 嘴巴_丰上唇调整
+        lowerlip_enhance: [0, 0, 0, 0, 0],                                      // 嘴巴_丰下唇调整
+        mouth_trans: [0, 0, 0, 0, 0],                                           // 嘴巴_大小调整
+        mouth_high: [0, 0, 0, 0, 0],                                            // 嘴巴_高度调整
+        mouth_breadth: [0, 0, 0, 0, 0],                                         // 嘴巴_宽度调整
+        high_mouth: [0, 0, 0, 0, 0],                                            // 嘴巴_上下调整
+        mouth_smile: [0, 0, 0, 0, 0],                                           // 嘴巴_微笑调整
+        eye_up_down_left: [0, 0, 0, 0, 0],                                      // 眼睛_左_上下调整
+        eye_up_down_right: [0, 0, 0, 0, 0],                                     // 眼睛_右_上下调整
+        eye_trans_left: [0, 0, 0, 0, 0],                                        // 眼睛_左_大小调整
+        eye_trans_right: [0, 0, 0, 0, 0],                                       // 眼睛_右_大小调整
+        eye_tilt_left: [0, 0, 0, 0, 0],                                         // 眼睛_左_倾斜调整
+        eye_tilt_right: [0, 0, 0, 0, 0],                                        // 眼睛_右_倾斜调整
+        eye_height_left: [0, 0, 0, 0, 0],                                       // 眼睛_左_眼高调整
+        eye_height_right: [0, 0, 0, 0, 0],                                      // 眼睛_右_眼高调整
+        eye_lid_left: [0, 0, 0, 0, 0],                                          // 眼睛_左_眼睑调整
+        eye_lid_right: [0, 0, 0, 0, 0],                                         // 眼睛_右_眼睑调整
+        eye_distance_left: [0, 0, 0, 0, 0],                                     // 眼睛_左_眼距调整
+        eye_distance_right: [0, 0, 0, 0, 0],                                    // 眼睛_右_眼距调整
+        eye_width_left: [0, 0, 0, 0, 0],                                        // 眼睛_左_眼宽调整
+        eye_width_right: [0, 0, 0, 0, 0],                                       // 眼睛_右_眼宽调整
+        inner_eye_corner_left: [0, 0, 0, 0, 0],                                 // 眼睛_左_开眼角调整
+        inner_eye_corner_right: [0, 0, 0, 0, 0],                                // 眼睛_右_开眼角调整
+        eyebrow_tilt_left: [0, 0, 0, 0, 0],                                     // 眉毛_左_倾斜调整
+        eyebrow_tilt_right: [0, 0, 0, 0, 0],                                    // 眉毛_右_倾斜调整
+        eyebrow_height_left: [0, 0, 0, 0, 0],                                   // 眉毛_左_上下调整
+        eyebrow_height_right: [0, 0, 0, 0, 0],                                  // 眉毛_右_上下调整
+        eyebrow_distance_left: [0, 0, 0, 0, 0],                                 // 眉毛_左_间距调整
+        eyebrow_distance_right: [0, 0, 0, 0, 0],                                // 眉毛_右_间距调整
+        eyebrow_ridge_left: [0, 0, 0, 0, 0],                                    // 眉毛_左_眉峰调整
+        eyebrow_ridge_right: [0, 0, 0, 0, 0],                                   // 眉毛_右_眉峰调整
+        eyebrow_size_left: [0, 0, 0, 0, 0],                                     // 眉毛_左_粗细调整
+        eyebrow_size_right: [0, 0, 0, 0, 0],                                    // 眉毛_右_粗细调整
+        // 身体优化
+        beauty_belly_alpha: [0],                                                // 身体优化_祛妊娠纹
+        baby_remove_dander: [0],                                                // 身体优化_婴幼儿去瑕疵
+        // 服装美化
+        rmw_rink: 0,                                                             // 衣服祛褶皱
+        // 滤镜参数
+        filter: {
+            filter_id: "-1",
+            filters_lut_alpha: 50,
+            filter_is_black: 0
+        },
+
+
     }
 
 
@@ -62,6 +184,8 @@ export class MeituautoService {
                 },
             }],
         };
+
+        // console.error('parameter: ', JSON.stringify(this.parameter, null, 4));
 
         try {
             const response = await axios.post(this.startProcessUrl, body, {
@@ -178,13 +302,13 @@ export class MeituautoService {
                 "film_granularity": 0,
                 "mandible_left": [0, 0, 0, 0, 0],
                 "mandible_right": [0, 0, 0, 0, 0],
-                "flaw_clean_alpha": [0, 76, 100, 76, 0],
-                "shiny_clean_alpha": [0, 59, 0, 0, 0],
+                "flaw_clean_alpha": [0, 0, 0, 0, 0],
+                "shiny_clean_alpha": [0, 0, 0, 0, 0],
                 "inner_eye_corner_right": [0, 0, 0, 0, 0],
                 "inner_eye_corner_left": [0, 0, 0, 0, 0],
                 "eye_lid_left": [0, 0, 0, 0, 0],
                 "eye_lid_right": [0, 0, 0, 0, 0],
-                "lip_remove_alpha": [0, 44, 0, 0, 0],
+                "lip_remove_alpha": [0, 0, 0, 0, 0],
                 "eye_up_down_left": [0, 0, 0, 0, 0],
                 "eye_up_down_right": [0, 0, 0, 0, 0],
                 "nasal_root": [0, 0, 0, 0, 0],
@@ -205,57 +329,57 @@ export class MeituautoService {
                 "mouth_smile": [0, 0, 0, 0, 0],
                 "face_beauty_alpha": [0, 0, 0, 0, 0],
                 "face_restore_alpha": [0, 0, 0, 0, 0],
-                "wrinkle_forehead_removal_alpha": [90, 90, 80, 90, 90],
-                "wrinkle_periorbital_removal_alpha": [90, 90, 65, 90, 90],
-                "wrinkle_nasolabial_removal_alpha": [90, 90, 83, 90, 90],
-                "wrinkle_cheek_removal_alpha": [90, 90, 57, 90, 90],
-                "wrinkle_neck_removal_alpha": [90, 90, 100, 90, 90],
-                "fleck_clean_flag": [0, 0, 0, 1, 1],
-                "skin_fleck_clean_flag": [1, 1, 1, 1, 1],
+                "wrinkle_forehead_removal_alpha": [0, 0, 0, 0, 0],
+                "wrinkle_periorbital_removal_alpha": [0, 0, 0, 0, 0],
+                "wrinkle_nasolabial_removal_alpha": [0, 0, 0, 0, 0],
+                "wrinkle_cheek_removal_alpha": [0, 0, 0, 0, 0],
+                "wrinkle_neck_removal_alpha": [0, 0, 0, 0, 0],
+                "fleck_clean_flag": [0, 0, 0, 0, 0],
+                "skin_fleck_clean_flag": [0, 0, 0, 0, 0],
                 "nevus_removal_flag": [0, 0, 0, 0, 0],
                 "remove_pouch": [0, 0, 0, 0, 0],
                 "black_head_clean_flag": [0, 0, 0, 0, 0],
                 "double_chin": [0, 0, 0, 0, 0],
-                "white_teeth": [10, 10, 50, 10, 10],
+                "white_teeth": [0, 0, 0, 0, 0],
                 "teeth_beauty": [0, 0, 0, 0, 0],
-                "face_balance_alpha": [0, 0, 0, 100, 100],
-                "skin_balance_alpha": [100, 100, 48, 100, 100],
-                "smooth_face_skin_alpha": [58, 45, 37, 20, 20],
-                "smooth_not_face_skin_alpha": [49, 5, 65, 5, 5],
-                "skin_hdr_alpha": [17, 21, 25, 21, 17],
-                "skin_white_alpha": [11, 20, 20, 20, 11],
-                "skin_red_alpha": [0, 0, 25, 0, 0],
-                "ai_shrink_head": [0, 14, 10, 0, 0],
+                "face_balance_alpha": [0, 0, 0, 0, 0],
+                "skin_balance_alpha": [0, 0, 0, 0, 0],
+                "smooth_face_skin_alpha": [0, 0, 0, 0, 0],
+                "smooth_not_face_skin_alpha": [0, 0, 0, 0, 0],
+                "skin_hdr_alpha": [0, 0, 0, 0, 0],
+                "skin_white_alpha": [0, 0, 0, 0, 0],
+                "skin_red_alpha": [0, 0, 0, 0, 0],
+                "ai_shrink_head": [0, 0, 0, 0, 0],
                 "face_forehead": [0, 0, 0, 0, 0],
                 "temple": [0, 0, 0, 0, 0],
                 "cheekbone": [0, 0, 0, 0, 0],
-                "narrow_face": [-20, -37, 0, -20, -20],
-                "face_trans": [-16, -29, 0, -16, -16],
-                "jaw_trans": [-44, -16, 0, -44, -44],
+                "narrow_face": [0, 0, 0, 0, 0],
+                "face_trans": [0, 0, 0, 0, 0],
+                "jaw_trans": [0, 0, 0, 0, 0],
                 "eye_trans": [0, 0, 0, 0, 0],
                 "eye_height": [0, 0, 0, 0, 0],
                 "eye_width": [0, 0, 0, 0, 0],
                 "eye_distance": [0, 0, 0, 0, 0],
                 "eye_tilt": [0, 0, 0, 0, 0],
-                "eye_trans_left": [18, 55, 0, 18, 18],
-                "eye_height_left": [14, 14, 0, 14, 14],
+                "eye_trans_left": [0, 0, 0, 0, 0],
+                "eye_height_left": [0, 0, 0, 0, 0],
                 "eye_width_left": [0, 0, 0, 0, 0],
                 "eye_distance_left": [0, 0, 0, 0, 0],
                 "eye_tilt_left": [0, 0, 0, 0, 0],
-                "eye_trans_right": [18, 55, 0, 18, 18],
-                "eye_height_right": [14, 14, 0, 14, 14],
+                "eye_trans_right": [0, 0, 0, 0, 0],
+                "eye_height_right": [0, 0, 0, 0, 0],
                 "eye_width_right": [0, 0, 0, 0, 0],
                 "eye_distance_right": [0, 0, 0, 0, 0],
                 "eye_tilt_right": [0, 0, 0, 0, 0],
-                "scale_nose": [0, -17, 0, 0, 0],
+                "scale_nose": [0, 0, 0, 0, 0],
                 "nose_longer": [0, 0, 0, 0, 0],
-                "shrink_nose": [-24, -29, 0, -24, -24],
+                "shrink_nose": [0, 0, 0, 0, 0],
                 "bridge_nose": [0, 0, 0, 0, 0],
                 "nasal_tip": [0, 0, 0, 0, 0],
-                "mouth_trans": [-17, -17, 0, -17, -17],
+                "mouth_trans": [0, 0, 0, 0, 0],
                 "upperlip_enhance": [0, 0, 0, 0, 0],
                 "lowerlip_enhance": [0, 0, 0, 0, 0],
-                "mouth_breadth": [-5, -15, 0, -15, -5],
+                "mouth_breadth": [0, 0, 0, 0, 0],
                 "mouth_high": [0, 0, 0, 0, 0],
                 "high_mouth": [0, 0, 0, 0, 0],
                 "eyebrow_height": [0, 0, 0, 0, 0],
@@ -274,18 +398,18 @@ export class MeituautoService {
                 "eyebrow_size_right": [0, 0, 0, 0, 0],
                 "eyebrow_ridge_right": [0, 0, 0, 0, 0],
                 "body_dullness_remove_alpha": [0, 0, 0, 0, 0],
-                "multibody_beauty": [60, 60, 0, 60, 60],
+                "multibody_beauty": [0, 0, 0, 0, 0],
                 "type": 0,
                 "type_slider": 0,
-                "shrink_head": 5,
-                "slim": 15,
-                "lengthen": 5,
+                "shrink_head": 0,
+                "slim": 0,
+                "lengthen": 0,
                 "heighten": 0,
-                "slim_leg": 20,
-                "slim_waist": 20,
-                "slim_hand": 15,
-                "chest_enlarge": 15,
-                "slim_hip": 5,
+                "slim_leg": 0,
+                "slim_waist": 0,
+                "slim_hand": 0,
+                "chest_enlarge": 0,
+                "slim_hip": 0,
                 "radio": 0,
                 "dehaze_coef": 0,
                 "awb_norm_coef": 0,
@@ -299,15 +423,15 @@ export class MeituautoService {
                 "denoise_intensity_coef": 0,
                 "highpass_body_coef": 0,
                 "highpass_background_coef": 0,
-                "shadow_light": [30, 30, 30, 30, 30],
-                "highlight_alpha": [28, 28, 0, 28, 28],
-                "eyebrow_deepen": [14, 14, 0, 14, 14],
-                "eyeshadow_deepen": [27, 27, 0, 27, 27],
-                "lipstick_deepen": [31, 31, 0, 31, 31],
+                "shadow_light": [0, 0, 0, 0, 0],
+                "highlight_alpha": [0, 0, 0, 0, 0],
+                "eyebrow_deepen": [0, 0, 0, 0, 0],
+                "eyeshadow_deepen": [0, 0, 0, 0, 0],
+                "lipstick_deepen": [0, 0, 0, 0, 0],
                 "facial_deepen": [0, 0, 0, 0, 0],
-                "bright_eye": [18, 18, 30, 18, 18],
+                "bright_eye": [0, 0, 0, 0, 0],
                 "shiny_clean": [0, 0, 0, 0, 0],
-                "beauty_belly_alpha": [0, 1, 0, 0, 0],
+                "beauty_belly_alpha": [0, 0, 0, 0, 0],
                 "eyebrow": [{
                     "id": "",
                     "color": "",
@@ -478,7 +602,7 @@ export class MeituautoService {
                 }],
                 "filter": {
                     "filter_id": "-1",
-                    "filters_lut_alpha": 50,
+                    "filters_lut_alpha": 0,
                     "filter_is_black": 0
                 },
                 "id_photo": {
@@ -488,13 +612,13 @@ export class MeituautoService {
                     "back_color": "",
                     "dst_back_color": "",
                     "back_mode": 0,
-                    "back_change_slope": 1,
-                    "back_change_bias": 1,
+                    "back_change_slope": 0,
+                    "back_change_bias": 0,
                     "layout": {
                         "width": 0,
                         "height": 0,
                         "unit": 0,
-                        "dpi": 300,
+                        "dpi": 0,
                         "margin": 0,
                         "row": 0,
                         "col": 0,
@@ -504,38 +628,39 @@ export class MeituautoService {
                         "width": 0,
                         "height": 0,
                         "unit": 0,
-                        "dpi": 300
+                        "dpi": 0
                     }
                 }
             },
             "preview_size": 0,
             "req_mask_version": 0,
-            "people_type": [{
-                "key": "man",
-                "gender": 1,
-                "name": "男",
-                "age": [15, 49]
-            }, {
-                "key": "woman",
-                "gender": 0,
-                "name": "女",
-                "age": [15, 49]
-            }, {
-                "key": "child",
-                "gender": 0,
-                "name": "儿童",
-                "age": [0, 14]
-            }, {
-                "key": "oldwoman",
-                "gender": 0,
-                "name": "老",
-                "age": [50, 100]
-            }, {
-                "key": "oldman",
-                "gender": 1,
-                "name": "老",
-                "age": [50, 100]
-            }],
+            "people_type": [
+                {
+                    "key": "child",
+                    "gender": 0,
+                    "name": "儿童",
+                    "age": [0, 14]
+                }, {
+                    "key": "man",
+                    "gender": 1,
+                    "name": "成年男子",
+                    "age": [15, 49]
+                }, {
+                    "key": "woman",
+                    "gender": 0,
+                    "name": "成年女子",
+                    "age": [15, 49]
+                }, {
+                    "key": "oldman",
+                    "gender": 1,
+                    "name": "年长男子",
+                    "age": [50, 100]
+                }, {
+                    "key": "oldwoman",
+                    "gender": 0,
+                    "name": "年长女子",
+                    "age": [50, 100]
+                }],
             "output": {
                 "format": "jpg",
                 "preview_size": 3000,
@@ -545,12 +670,12 @@ export class MeituautoService {
                 "water_mark": 0
             }
         };
-        Object.assign(this.parameter, externalParams);
-        for (const key in externalParams) {
-            if (externalParams.hasOwnProperty(key) && this.parameter.hasOwnProperty(key)) {
-                this.parameter[key] = externalParams[key];
-            }
-        }
+        Object.assign(this.parameter['all_params'], externalParams);
+        // for (const key in externalParams) {
+        //     if (externalParams.hasOwnProperty(key) && this.parameter.hasOwnProperty(key)) {
+        //         this.parameter[key] = externalParams[key];
+        //     }
+        // }
 
 
         const msgIds: string[] = [];

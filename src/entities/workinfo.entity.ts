@@ -46,5 +46,9 @@ export class WorkInfo {
     //是否是生成预览图
     @Column({ type: "boolean" })
     isPreview: boolean;
+    
+    //压缩后的预览图(链接)
+    @Column('json')
+    workPreview: object[];
 
 }

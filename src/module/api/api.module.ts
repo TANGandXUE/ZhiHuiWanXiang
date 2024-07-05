@@ -15,9 +15,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProcessService } from './service/process/process.service';
 import { ProcessController } from './controller/process/process.controller';
 import { WorkInfo } from 'src/entities/workinfo.entity';
+import { ParamsInfo } from 'src/entities/params.entity';
 
 @Module({
-  imports: [SqlModule,TypeOrmModule.forFeature([Pay, UserInfo, WorkInfo])],
+  imports: [SqlModule,TypeOrmModule.forFeature([Pay, UserInfo, WorkInfo, ParamsInfo])],
   controllers: [ApiController, PayController, ProcessController],
   providers: [UploadService, IsimgService, DatatransService, MeituautoService, ChatqwenService, AlimsgService, PayService, ProcessService],
   exports: [UploadService, ChatqwenService, MeituautoService, AlimsgService],

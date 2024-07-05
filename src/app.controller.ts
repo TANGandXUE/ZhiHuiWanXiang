@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { DatatransService } from './service/datatrans/datatrans.service';
+import * as path from 'path';
 
 @Controller()
 export class AppController {
@@ -42,5 +43,10 @@ export class AppController {
       }
     );
     console.log(response);
+  }
+
+  @Get('text-ext')
+  async ext() {
+    console.log(path.extname('com.combraers.exts.jpg').toLowerCase().substring(1));
   }
 }

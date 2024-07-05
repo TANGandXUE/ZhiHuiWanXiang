@@ -11,8 +11,9 @@ import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserInfo } from 'src/entities/userinfo.entity';
 import { WorkInfo } from 'src/entities/workinfo.entity';
+import { ParamsInfo } from 'src/entities/params.entity';
 import { getApiList } from 'src/others/apiList';
-import { Any, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 // .env
 import * as dotenv from 'dotenv';
@@ -36,6 +37,8 @@ export class ProcessService {
         private readonly userInfoRepository: Repository<UserInfo>,
         @InjectRepository(WorkInfo)
         private readonly workInfoRepository: Repository<WorkInfo>,
+        @InjectRepository(ParamsInfo)
+        private readonly paramsRepository: Repository<ParamsInfo>,
 
     ) { }
 
@@ -98,20 +101,21 @@ export class ProcessService {
             workInfo.workResult = [];
             workInfo.workErrorInfos = [];
             workInfo.isPreview = isPreview;
+            workInfo.workPreview = [];
             await this.workInfoRepository.save(workInfo);
-            console.log('workId: ', workId);
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
-            console.log('发起修图任务成功');
+            // console.log('workId: ', workId);
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
 
             // 启动异步修图任务的第一步--转换图片格式
             this.img2img(workInfo, fileInfos_url, useApiList);
@@ -139,26 +143,50 @@ export class ProcessService {
             workResult: Array<any>,
             workErrorInfos: Array<any>,
             isPreview: boolean,
+            workPreview: Array<any>,
         },
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         useApiList: Array<string>,
     ) {
 
 
-        // 如果是预览图模式，则只使用第一张图
-        if (workInfo.isPreview) {    
-            fileInfos_url = [fileInfos_url[0]];       
-        } else {
-            // 如果不是预览图，那第一张图就不需要转换格式了
-            fileInfos_url = fileInfos_url.slice(1);
-            // 如果除了预览图，没有别的图了，直接修改workInfo的状态为completed
-            if (fileInfos_url.length === 0) {
-                workInfo.workStatus = 'completed';
-                // workInfo.workUsePoints不用写，因为如果除了预览图没有别的图了，也就不用扣除点数了，也就不用修改默认的0
+        // 如果是预览图模式，则只压缩第一张图并使用
+        if (workInfo.isPreview) {
+            fileInfos_url = [fileInfos_url[0]];
+            try {
+                const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressBySize(fileInfos_url, 1200, 1200);
+                if (responseData_imgCompress.isSuccess) {
+                    fileInfos_url = responseData_imgCompress.data;
+                } else {
+                    workInfo.workStatus = 'failed';
+                    workInfo.workErrorInfos.push({
+                        fromAPI: '压缩预览图',
+                        message: `压缩预览图时出现错误，原因为: ${responseData_imgCompress.message}`,
+                    })
+                    await this.workInfoRepository.save(workInfo);
+                }
+            } catch (error) {
+                workInfo.workStatus = 'failed';
+                workInfo.workErrorInfos.push({
+                    fromAPI: '压缩预览图',
+                    message: `压缩预览图时出现错误，原因为: ${error}`,
+                })
                 await this.workInfoRepository.save(workInfo);
-                // console.log('workInfo: ', workInfo);
-                return;
             }
+        } else {
+
+            // -------------------------不再需要，因为现在修改了预览模式----------------------------
+
+            // // 如果不是预览图，那第一张图就不需要转换格式了
+            // fileInfos_url = fileInfos_url.slice(1);
+            // // 如果除了预览图，没有别的图了，直接修改workInfo的状态为completed
+            // if (fileInfos_url.length === 0) {
+            //     workInfo.workStatus = 'completed';
+            //     // workInfo.workUsePoints不用写，因为如果除了预览图没有别的图了，也就不用扣除点数了，也就不用修改默认的0
+            //     await this.workInfoRepository.save(workInfo);
+            //     // console.log('workInfo: ', workInfo);
+            //     return;
+            // }
         }
 
         // 根据执行结果进行下一步操作
@@ -170,6 +198,12 @@ export class ProcessService {
                 // 判断是全部图片转换成功还是部分成功
                 if (responseData_img2img.message === `图片类型转换成功`) {
                     fileInfos_url = responseData_img2img.data;
+                    if (workInfo.isPreview) {
+                        console.log('aaaaaaaaaaaaaaa阿迪达斯都发生地方fileInfos_url: ', fileInfos_url);
+                        workInfo.workPreview.push(fileInfos_url[0]);
+                        await this.workInfoRepository.save(workInfo);
+                    }
+                    console.log('workInfo: ', workInfo);
                     // 传值，接力执行修图任务
                     this.txt2params(workInfo, fileInfos_url, useApiList);
                 } else {
@@ -218,6 +252,7 @@ export class ProcessService {
             workResult: Array<any>,
             workErrorInfos: Array<any>,
             isPreview: boolean,
+            workPreview: Array<any>,
         },
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         useApiList: Array<string>,
@@ -228,6 +263,11 @@ export class ProcessService {
             const params: any = {};
             let isSuccess: boolean = true;
 
+
+
+
+
+
             // 生成meituauto参数
             if (useApiList.includes('meituauto')) {
                 params['meituauto'] = await this.chatqwenService.txt2param(workInfo.workText, "meituauto");
@@ -235,14 +275,38 @@ export class ProcessService {
             }
             // 生成其他参数...
 
+
+
+
+
+
+
             console.log('params: ', params);
+
+            // 组合workId和临时参数列表存入数据库
+            try {
+                const paramsInfo = new ParamsInfo();
+                paramsInfo.paramsWorkId = workInfo.workId;
+                paramsInfo.params = params;
+                await this.paramsRepository.save(paramsInfo);
+            } catch (error) {
+                workInfo.workStatus = 'failed';
+                workInfo.workErrorInfos.push({
+                    fromAPI: 'txt2params',
+                    message: `文本转参数后，将临时参数存入数据库时异常。具体错误为：${error}`,
+                })
+                await this.workInfoRepository.save(workInfo);
+            }
+
+
+
 
             // 根据执行结果进行下一步操作
             if (!isSuccess) {
                 workInfo.workStatus = 'failed';
                 workInfo.workErrorInfos.push({
                     fromAPI: 'txt2params',
-                    message: `文本转参数时出现错误，原因未知`,
+                    message: `文本转参数时未返回任何参数，请重新调整输入的语句`,
                 })
                 await this.workInfoRepository.save(workInfo);
             }
@@ -262,6 +326,168 @@ export class ProcessService {
         }
     }
 
+    // 重新生成图片(预览图)
+    public async startReprocess(
+        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
+        userId: number,  // 用户ID
+        useApiList: Array<string>,  // 使用的API
+        params: {
+            meituauto: any,
+        },
+    ) {
+        try {
+
+            // 根据用户Id获取用户信息
+            const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
+            if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
+
+            // 判断使用的API列表是否在该用户等级所能使用的列表之内
+            const allowedApiList = getApiList(userInfos.userLevel)
+            if (!useApiList.every(api => allowedApiList.includes(api)))
+                return { isSuccess: false, message: '当前调用的API中，有部分或全部，不在该用户的用户等级所能使用的API列表之内', data: null };
+
+            // 根据今天的日期随机生成一个20位workId
+            let workId: string = '';
+            while (true) {
+                // 生成
+                const now = new Date();
+                const datePart = now.toISOString().slice(0, 19).replace(/-/g, '').replace(/T/, '').replace(/:/g, '');
+                const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+                workId = datePart + randomPart;
+
+                // 检查是否重复
+                const existWorkInfo = await this.workInfoRepository.findOne({ where: { workId } });
+                if (!existWorkInfo) break;
+            }
+
+            // 组合workId和临时参数列表存入数据库
+            const paramsInfo = new ParamsInfo();
+            paramsInfo.paramsWorkId = workId;
+            paramsInfo.params = params;
+            await this.paramsRepository.save(paramsInfo);
+
+            // 初始化workInfo
+            const workInfo = new WorkInfo();
+            workInfo.workId = workId;
+            workInfo.workUserId = userId;
+            workInfo.workText = '';
+            workInfo.workApiList = useApiList;
+            workInfo.workStartTime = new Date();
+            workInfo.workStatus = 'processing';
+            workInfo.workUsePoints = 0;
+            workInfo.workUseTime = 0;
+            workInfo.workResult = [];
+            workInfo.workErrorInfos = [];
+            workInfo.isPreview = true;
+            workInfo.workPreview = fileInfos_url;
+            await this.workInfoRepository.save(workInfo);
+            // console.log('workId: ', workId);
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+
+            // 直接开始imgProcess
+            this.imgProcess(workInfo, fileInfos_url, params, useApiList);
+
+            return { isSuccess: true, message: '发起修图任务成功', data: workId };
+
+        } catch (error) {
+            console.log(error);
+            return { isSuccess: false, message: `发起修图任务失败，原因为: ${error}`, data: null };
+        }
+
+    }
+
+    // 批量生成图片    
+    public async startFinalProcess(
+        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
+        userId: number,  // 用户ID
+        useApiList: Array<string>,  // 使用的API
+        params: {
+            meituauto: any,
+        },
+    ) {
+        try {
+
+            // 根据用户Id获取用户信息
+            const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
+            if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
+
+            // 判断使用的API列表是否在该用户等级所能使用的列表之内
+            const allowedApiList = getApiList(userInfos.userLevel)
+            if (!useApiList.every(api => allowedApiList.includes(api)))
+                return { isSuccess: false, message: '当前调用的API中，有部分或全部，不在该用户的用户等级所能使用的API列表之内', data: null };
+
+            // 根据今天的日期随机生成一个20位workId
+            let workId: string = '';
+            while (true) {
+                // 生成
+                const now = new Date();
+                const datePart = now.toISOString().slice(0, 19).replace(/-/g, '').replace(/T/, '').replace(/:/g, '');
+                const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+                workId = datePart + randomPart;
+
+                // 检查是否重复
+                const existWorkInfo = await this.workInfoRepository.findOne({ where: { workId } });
+                if (!existWorkInfo) break;
+            }
+
+            // // 组合workId和临时参数列表存入数据库
+            // const paramsInfo = new ParamsInfo();
+            // paramsInfo.paramsWorkId = workId;
+            // paramsInfo.params = params;
+            // await this.paramsRepository.save(paramsInfo);
+
+            // 初始化workInfo
+            const workInfo = new WorkInfo();
+            workInfo.workId = workId;
+            workInfo.workUserId = userId;
+            workInfo.workText = '';
+            workInfo.workApiList = useApiList;
+            workInfo.workStartTime = new Date();
+            workInfo.workStatus = 'processing';
+            workInfo.workUsePoints = 0;
+            workInfo.workUseTime = 0;
+            workInfo.workResult = [];
+            workInfo.workErrorInfos = [];
+            workInfo.isPreview = false;
+            workInfo.workPreview = [];
+            await this.workInfoRepository.save(workInfo);
+            // console.log('workId: ', workId);
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+
+            // 直接开始imgProcess
+            this.imgProcess(workInfo, fileInfos_url, params, useApiList);
+
+            return { isSuccess: true, message: '发起修图任务成功', data: workId };
+
+        } catch (error) {
+            console.log(error);
+            return { isSuccess: false, message: `发起修图任务失败，原因为: ${error}`, data: null };
+        }
+
+    }
+
     // 图片处理
     private async imgProcess(
         workInfo: {
@@ -276,6 +502,7 @@ export class ProcessService {
             workResult: Array<any>,
             workErrorInfos: Array<any>,
             isPreview: boolean,
+            workPreview: Array<any>,
         },
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         params: {
@@ -402,9 +629,11 @@ export class ProcessService {
             await this.workInfoRepository.save(workInfo);
         } else {
             workInfo.workStatus = 'completed';
-            workInfo.workUsePoints = await this.deductPoints(workInfo);
+            if (!workInfo.isPreview) {
+                workInfo.workUsePoints = await this.deductPoints(workInfo);
+                // console.log('1workInfo: ', workInfo);
+            }
             await this.workInfoRepository.save(workInfo);
-            // console.log('1workInfo: ', workInfo);
         }
 
     }
@@ -424,6 +653,7 @@ export class ProcessService {
             workResult: Array<any>,
             workErrorInfos: Array<any>,
             isPreview: boolean,
+            workPreview: Array<any>,
         },
     ) {
 
@@ -476,6 +706,24 @@ export class ProcessService {
         workListToGet = await this.workInfoRepository.find({ where: { workUserId } });
         console.log("workListToGet: ", JSON.stringify(workListToGet[0]));
         return { isSuccess: true, message: '获取工作记录成功', data: workListToGet };
+    }
+
+    // 获取txt2params使用的临时参数
+    async queryParams(workId: string)
+        : Promise<{ isSuccess: boolean, message: string, data: any }> {
+        try {
+            // 使用workId作为筛选条件查询ParamsInfo
+            const paramsInfo = await this.paramsRepository.findOne({ where: { paramsWorkId: workId } });
+            console.log('paramsInfo: ', paramsInfo);
+            if (paramsInfo)
+                return { isSuccess: true, message: '查询ParamsInfo成功', data: paramsInfo };
+            else
+                return { isSuccess: false, message: '查询ParamsInfo失败: 未找到该任务ID对应的临时参数', data: paramsInfo };
+        } catch (error) {
+            // 这里可以根据实际情况处理错误，比如记录日志
+            console.error(`查询ParamsInfo时发生错误，workId为：${workId}，错误详情：`, error);
+            return { isSuccess: false, message: `查询ParamsInfo时发生错误，workId为：${workId}，错误详情：${error}`, data: null };
+        }
     }
 
 

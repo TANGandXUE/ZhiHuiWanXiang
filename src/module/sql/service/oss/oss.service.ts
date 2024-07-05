@@ -124,20 +124,22 @@ export class OssService {
 
     // 重命名重名的文件(仅输入fileName)
     async reNameFileName(fileName: string): Promise<string> {
-        let baseName = fileName; // 储存原始文件名（不含后缀）
-        let extension = ''; // 储存文件扩展名
-        let suffix = 1; // 初始化后缀为1
+        // 分割文件名和扩展名，确保使用最后一个"."来获取真正的扩展名
+        const parts = fileName.split('.');
+        const extension = `.${parts.pop()}`; // 获取最后一个部分作为扩展名
+        const baseName = parts.join('.'); // 剩余部分组成基础文件名
 
-        // 首次分割文件名和扩展名
-        if (fileName.includes('.')) {
-            [baseName, extension] = fileName.split('.');
-            extension = `.${extension}`;
-        }
+        let suffix = 1; // 初始化后缀为1
+        let fullFileName: string; // 在循环外定义 fullFileName
+        let newNameBase: string;
 
         // 循环直到找到一个唯一的文件名
         while (true) {
-            const fullFileName = this.ossConfig.dir + baseName + (suffix > 1 ? `-${suffix}` : '') + extension; // 构建完整的带后缀的文件名
+            newNameBase = suffix > 1 ? `${baseName}-${suffix}` : baseName; // 添加后缀到基础文件名，如果需要的话
+            fullFileName = this.ossConfig.dir + newNameBase + extension; // 在循环内更新 fullFileName 的值
+            console.log('fullFileName: ', fullFileName);
             const exists = await this.isExistObject(fullFileName); // 检查文件名是否存在
+            console.log('是否存在: ', exists);
             if (!exists) {
                 // 如果文件名不存在，则跳出循环
                 break;
@@ -147,7 +149,7 @@ export class OssService {
         }
 
         // 返回最终的唯一文件名
-        return baseName + (suffix > 1 ? `-${suffix}` : '') + extension;
+        return newNameBase + extension; // 现在可以正确返回 fullFileName
     }
 
 
