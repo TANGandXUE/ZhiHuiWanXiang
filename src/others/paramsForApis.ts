@@ -5,7 +5,7 @@ export const paramsForApis = [
         "type": "function",
         "function": {
             "name": "meituauto",
-            "description": "当你想对图片作出调整时非常有用。能够提供如下效果：人像优化、人体优化、色彩调整、暗图矫正（改善图片角落/周围的暗色部分）、智能调节白平衡（改善发黄或发蓝的图像）、智能调节曝光（改善过亮或过暗的图像）、智能去雾（去除图片中灰蒙蒙的感觉）、智能美颜（让人更好看）、智能修复（改善照片中的模糊、低分辨率或老旧照片）。所有参数请尽可能给的保守一些，数值非必要不用给太高。",
+            "description": "当你想对图片作出调整时非常有用。所有参数请尽可能给的保守一些，数值非必要不用给太高。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -149,7 +149,7 @@ export const paramsForApis = [
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "减少身体表面的瑕疵，身体去瑕疵系数。"
+                        "description": "身体去瑕疵"
                     },
                     "fluffy_hair": {
                         "type": "integer",
@@ -179,6 +179,18 @@ export const paramsForApis = [
                         "minimum": 0,
                         "maximum": 100,
                         "description": "发色增黑"
+                    },
+                    "smooth_face_skin_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "脸部磨皮"
+                    },
+                    "smooth_not_face_skin_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "身体磨皮"
                     },
                     "filter": {
                         "type": "object",

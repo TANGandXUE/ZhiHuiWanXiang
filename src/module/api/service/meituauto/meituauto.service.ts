@@ -59,6 +59,8 @@ export class MeituautoService {
         teeth_beauty: [0, 0, 0, 0, 0],                  // 牙齿修复
         heighten: 0,                                    // AI增高
         black_hair: 0,                                  // 发色加深
+        smooth_face_skin_alpha: [0, 0, 0, 0, 0],        // 脸部磨皮
+        smooth_not_face_skin_alpha: [0, 0, 0, 0, 0],    // 身体磨皮
         // HSL色彩调整相关属性
         hsl_hue_red: 0,                                 // 色相_红色，调整红色的主色调
         hsl_hue_orange: 0,                              // 色相_橙色，调整橙色的主色调

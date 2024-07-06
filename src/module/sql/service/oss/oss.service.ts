@@ -16,6 +16,7 @@ export class OssService {
         bucket: process.env.OSS_BUCKET, // 示例：'my-bucket-name'，填写存储空间名称。
         dir: "img/",
     }
+    max_file_size: number = Number(process.env.OSS_MAX_FILE_SIZE || 1048576000);
 
     client = new OSS(this.ossConfig);
 
@@ -165,7 +166,7 @@ export class OssService {
         const policy = {
             expiration: date.toISOString(),
             conditions: [
-                ["content-length-range", 0, 1048576000], // 示例：文件大小限制为0到100MB
+                ["content-length-range", 0, this.max_file_size], // 示例：文件大小限制为0到100MB
                 { bucket: client.options.bucket }, // 限制上传到指定Bucket
                 ['starts-with', '$Content-Type', 'image/'],
             ],

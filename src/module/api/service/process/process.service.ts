@@ -47,6 +47,8 @@ export class ProcessService {
     timeout_meituauto: number = Number(process.env.MEITUAUTO_TIMEOUT || 60000)
     timeout_urlToLocal: number = Number(process.env.DOWNLOAD_TIMEOUT || 60000)
     timeout_uploadFiles: number = Number(process.env.UPLOAD_TIMEOUT || 60000)
+    max_preview_width: number = Number(process.env.MAX_PREVIEW_WIDTH || 1200)
+    max_preview_height: number = Number(process.env.MAX_PREVIEW_HEIGHT || 1200)
 
 
 
@@ -154,7 +156,7 @@ export class ProcessService {
         if (workInfo.isPreview) {
             fileInfos_url = [fileInfos_url[0]];
             try {
-                const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressBySize(fileInfos_url, 1200, 1200);
+                const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressBySize(fileInfos_url, this.max_preview_width, this.max_preview_height);
                 if (responseData_imgCompress.isSuccess) {
                     fileInfos_url = responseData_imgCompress.data;
                 } else {
@@ -317,6 +319,7 @@ export class ProcessService {
             }
 
         } catch (error) {
+            console.error(error);
             workInfo.workStatus = 'failed';
             workInfo.workErrorInfos.push({
                 fromAPI: 'txt2params',
@@ -519,15 +522,17 @@ export class ProcessService {
         // 定义一个封装了MeituAuto的Promise
         if (useApiList.includes('meituauto')) {
             const meituAutoPromise = new Promise((resolve, reject) => {
-                this.meituautoService.meitu_auto(fileInfos_url, params.meituauto, (results_url, message) => {
+                this.meituautoService.meitu_auto(fileInfos_url, params.meituauto, async (results_url, message) => {
                     // 如果存在错误，写入errorInfos
                     if (message.length > 0) {
+
                         workInfo.workErrorInfos.push({
                             fromAPI: 'meituAuto',
                             message,
                         });
+                        await this.workInfoRepository.save(workInfo);
                     }
-                    if (results_url) {
+                    if (results_url && results_url.length > 0) {
                         console.log('meituauto执行结束: ', results_url);
 
                         // 创建urlToLocal的超时Promise
@@ -579,33 +584,43 @@ export class ProcessService {
                 console.log('此处的workInfo.workResult: ', workInfo.workResult)
             } catch (error) {
                 let errorMessage = error.message;
-
                 // 判断是超时错误，还是其他错误
                 if (errorMessage.includes('超时')) {
                     workInfo.workErrorInfos.push({
                         fromAPI: errorMessage.includes('meituAuto') ? 'meituAuto' : errorMessage.includes('urlToLocal') ? 'urlToLocal' : 'uploadFiles',
                         message: errorMessage,
                     });
+                    await this.workInfoRepository.save(workInfo);
+                    workInfo.workResult = fileInfos_url;
                 } else {
                     workInfo.workErrorInfos.push({
                         fromAPI: 'meituAuto',
                         message: `调用相关方法时出现错误，错误信息为：${JSON.stringify(error)}`,
                     });
+                    await this.workInfoRepository.save(workInfo);
+                    workInfo.workResult = fileInfos_url;
                 }
             } finally {
-                // 调用deleteFileInfos并处理返回信息，但不阻塞流程
-                this.datatransService.deleteFileInfos(renamed_response_fileInfos)
-                    .then(result => {
-                        if (!result.isSuccess) {
-                            console.error(result.message); // 记录失败的删除信息
-                        } else {
-                            console.log(result.message); // 记录成功信息
-                        }
-                    })
-                    .catch(err => {
-                        console.error('在尝试删除response_fileInfos时遇到未知错误:', err);
-                    });
+                if (renamed_response_fileInfos && renamed_response_fileInfos.length > 0) {
+
+                    // 调用deleteFileInfos并处理返回信息，但不阻塞流程
+                    this.datatransService.deleteFileInfos(renamed_response_fileInfos)
+                        .then(result => {
+                            if (!result.isSuccess) {
+                                console.error(result.message); // 记录失败的删除信息
+                            } else {
+                                console.log(result.message); // 记录成功信息
+                            }
+                        })
+                        .catch(err => {
+                            console.error('在尝试删除response_fileInfos时遇到未知错误:', err);
+                        });
+
+                }
+
             }
+
+
         }
 
         // 调用其他接口-----------------------------------------------------
@@ -614,8 +629,8 @@ export class ProcessService {
 
         // 根据执行结果进行下一步操作
         workInfo.workUseTime = new Date().getTime() - workInfo.workStartTime.getTime();
-        console.warn('workInfo.workResult: ', workInfo.workResult);
-        console.warn('fileInfos_url:', fileInfos_url);
+        // console.warn('workInfo.workResult: ', workInfo.workResult);
+        // console.warn('fileInfos_url:', fileInfos_url);
         if (
             // 如果两个完全相等，就意味着所有处理没有起到任何作用，也就等同于处理失败
             workInfo.workResult === fileInfos_url
