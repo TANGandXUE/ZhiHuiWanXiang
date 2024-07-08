@@ -16,17 +16,16 @@ export class ProcessController {
         return getApiList(req.user.userLevel);
     }
 
-    // 发起修图任务
-    @Post()
+    // 发起生成预览图任务
+    @Post('preview')
     @UseGuards(JwtAuthGuard)
-    async startProcess(@Req() req) {
+    async startPreviewProcess(@Req() req) {
         // console.log(req.user);
-        return await this.processService.startProcess(
+        return await this.processService.startPreviewProcess(
             req.body.fileInfos_url,
             req.body.text,
             req.user.userId,
             req.body.useApiList,
-            req.body.isPreview,
         )
     }
 
@@ -64,13 +63,26 @@ export class ProcessController {
         return await this.processService.queryProcess(req.body.workId);
     }
 
-    // 根据JWT获取绘图记录
+    // 旧：根据JWT获取全部历史记录
     @Get('syncinfos')
     @UseGuards(JwtAuthGuard)
     async syncInfos(@Req() req) {
         // userId是必然不会变动的信息，所以用UseGuards来从JWT中取出，以从数据库中获取动态信息
         const workUserId = req.user.userId;
         return await this.processService.getWorkInfos(workUserId);
+    }
+
+    // 新：根据JWT和相关查询信息获取分页历史记录
+    @Post('syncpagedinfos')
+    @UseGuards(JwtAuthGuard)
+    async syncPagedInfos(@Req() req) {
+        return await this.processService.getPagedWorkInfos(
+            req.user.userId,            // userId是必然不会变动的信息，所以用UseGuards来从JWT中取出，以从数据库中获取动态信息
+            req.body.pageIndex,         // 页码
+            req.body.pageSize,          // 每页条目数
+            req.body.prop,              // 排序字段
+            req.body.order,             // 升降序
+        );
     }
 
     // 查询txt2params使用的临时参数

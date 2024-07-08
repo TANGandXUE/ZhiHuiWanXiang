@@ -66,7 +66,7 @@ export class DatatransService {
     }
 
     // 删除本地文件
-    async deleteFileInfos(fileInfos: Array<{ fileName: string, filePath: string }>): Promise<{ isSuccess: boolean, message: string, data: any }> {
+    public async deleteFileInfos(fileInfos: Array<{ fileName: string, filePath: string }>): Promise<{ isSuccess: boolean, message: string, data: any }> {
         const failedDeletions: string[] = []; // 用于收集删除失败的文件信息
 
         for (const fileInfo of fileInfos) {
@@ -337,7 +337,12 @@ export class DatatransService {
 
             await Promise.all(startCompress);
             console.log("fileInfos:", fileInfos);
-            return { isSuccess: true, message: '图片压缩成功', data: await this.ossService.uploadFiles(fileInfos) }
+            const return_fileInfos_url = await this.ossService.uploadFiles(fileInfos);
+
+            // 删除本地文件
+            await this.deleteFileInfos(fileInfos);
+            
+            return { isSuccess: true, message: '图片压缩成功', data: return_fileInfos_url };
 
         } catch (e) {
             return { isSuccess: false, message: `图片压缩错误：${e}`, data: [] };
@@ -373,7 +378,12 @@ export class DatatransService {
 
             await Promise.all(startCompress);
             console.log("fileInfos:", fileInfos);
-            return { isSuccess: true, message: '图片压缩成功', data: await this.ossService.uploadFiles(fileInfos) };
+            const return_fileInfos_url = await this.ossService.uploadFiles(fileInfos);
+
+            // 删除本地文件
+            await this.deleteFileInfos(fileInfos);
+
+            return { isSuccess: true, message: '图片压缩成功', data: return_fileInfos_url };
 
         } catch (e) {
             return { isSuccess: false, message: `图片压缩错误：${e}`, data: [] };

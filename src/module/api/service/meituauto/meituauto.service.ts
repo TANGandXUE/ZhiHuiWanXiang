@@ -160,6 +160,7 @@ export class MeituautoService {
     private readonly apiKey = process.env.MEITUAUTO_APIKEY;
     private readonly apiSecret = process.env.MEITUAUTO_APISECRET;
     private readonly startProcessUrl = 'https://api.yunxiu.meitu.com/openapi/super_realphotolocal_async';
+    private readonly startProcessUrl_preview = 'https://api.yunxiu.meitu.com/openapi/super_realphotolocal_preview_async';
     private readonly queryUrl = 'https://api.yunxiu.meitu.com/openapi/query';
 
     private timerId: NodeJS.Timeout | null = null;
@@ -167,7 +168,7 @@ export class MeituautoService {
     private parameter = {};
 
 
-    private async meitu_auto_startProcessSingle(fileInfo_url: { fileName: string, fileURL: string })
+    private async meitu_auto_startProcessSingle(fileInfo_url: { fileName: string, fileURL: string }, isPreview: boolean)
     // : Promise<{ isSuccess: Boolean, message: string, data: any }> 
     {
         const query = {
@@ -189,8 +190,15 @@ export class MeituautoService {
 
         // console.error('parameter: ', JSON.stringify(this.parameter, null, 4));
 
+        // 确定请求地址（预览图和原图请求地址区分化）
+        let url = ''
+        if(isPreview)
+            url = this.startProcessUrl_preview
+        else
+            url = this.startProcessUrl;
+
         try {
-            const response = await axios.post(this.startProcessUrl, body, {
+            const response = await axios.post(url, body, {
                 params: query,
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -248,7 +256,8 @@ export class MeituautoService {
     //调用前两个方法，执行美图智能修图
     async meitu_auto(
         fileInfos_url_input: Array<{ fileName: string, fileURL: string }>,
-        externalParams, // 外部传入的，用于修改初始参数的参数
+        externalParams: any, // 外部传入的，用于修改初始参数的参数
+        isPreview: boolean,
         callback: (fileInfos_url_output, errorMessages: Array<string>) => void
     ) {
 
@@ -695,7 +704,7 @@ export class MeituautoService {
 
             try {
 
-                const msgId = await this.meitu_auto_startProcessSingle(fileInfo_url);
+                const msgId = await this.meitu_auto_startProcessSingle(fileInfo_url, isPreview);
 
                 // 将msgId和fileName对应起来
                 msgIdToFileNameMap.set(msgId, fileInfo_url.fileName);
@@ -728,7 +737,7 @@ export class MeituautoService {
                         console.log('msgIdToFileNameMap:', Array.from(msgIdToFileNameMap.entries()));
                         const fileInfo_url = fileInfos_url_input.find(fileInfo_url => fileInfo_url.fileName === msgIdToFileNameMap.get(msgId));
                         console.log('fileInfo_url: ', fileInfo_url);
-                        const newMsgId = await this.meitu_auto_startProcessSingle(fileInfo_url);
+                        const newMsgId = await this.meitu_auto_startProcessSingle(fileInfo_url, isPreview);
                         msgIdToFileNameMap.set(newMsgId, fileInfo_url.fileName);
                         msgIds.splice(msgIds.indexOf(msgId), 1);
                         msgIds.push(newMsgId);

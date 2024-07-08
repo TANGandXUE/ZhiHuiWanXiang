@@ -88,6 +88,7 @@ export class ApiController {
                 face_beauty_alpha: [80, 80, 80, 80, 80],
                 face_restore_alpha: [50, 50, 50, 50, 50],
             },
+            false,
             (fileInfos_url) => {
                 console.log('meituauto执行结束: ', fileInfos_url);
             }

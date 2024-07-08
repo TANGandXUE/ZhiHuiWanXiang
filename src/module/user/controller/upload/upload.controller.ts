@@ -121,7 +121,7 @@ export class UploadController {
         // 调用meituauto接口------------------------------------------------
         // 定义一个封装了MeituAuto的Promise
         const meituAutoPromise = new Promise((resolve, reject) => {
-            this.meituautoService.meitu_auto(inputFileInfos_url, params.meituauto, (results_url, message) => {
+            this.meituautoService.meitu_auto(inputFileInfos_url, params.meituauto, false, (results_url, message) => {
                 // 如果存在错误，写入errorInfos
                 if (message.length > 0) {
                     errorInfos.push({
@@ -197,7 +197,12 @@ export class UploadController {
 
             await Promise.all(startCompress);
             console.log("fileInfos:", fileInfos);
-            return await this.ossService.uploadFiles(fileInfos);
+            const return_fileInfos_url = await this.ossService.uploadFiles(fileInfos);
+
+            // 删除本地文件
+            await this.datatransService.deleteFileInfos(fileInfos);
+            
+            return { isSuccess: true, message: '图片压缩成功', data: return_fileInfos_url };
 
         } catch (e) {
             logger.error(e);

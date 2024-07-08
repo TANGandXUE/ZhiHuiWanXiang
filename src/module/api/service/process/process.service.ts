@@ -54,14 +54,13 @@ export class ProcessService {
 
 
 
-    // 开始修图
-    async startProcess(
+    // 开始生成预览图
+    async startPreviewProcess(
 
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         text: string,    // 自然语言
         userId: number,  // 用户ID
         useApiList: Array<string>,  // 使用的API
-        isPreview: boolean,  // 是否是生成预览图
 
     ): Promise<{ isSuccess: boolean, message: string, data: any }> {
 
@@ -102,7 +101,7 @@ export class ProcessService {
             workInfo.workUseTime = 0;
             workInfo.workResult = [];
             workInfo.workErrorInfos = [];
-            workInfo.isPreview = isPreview;
+            workInfo.isPreview = true;
             workInfo.workPreview = [];
             await this.workInfoRepository.save(workInfo);
             // console.log('workId: ', workId);
@@ -131,111 +130,164 @@ export class ProcessService {
 
     }
 
-    // 图片格式转换
-    private async img2img(
-        workInfo: {
-            workId: string,
-            workUserId: number,
-            workText: string,
-            workApiList: Array<string>,
-            workStartTime: Date,
-            workStatus: string,
-            workUsePoints: number,
-            workUseTime: number,
-            workResult: Array<any>,
-            workErrorInfos: Array<any>,
-            isPreview: boolean,
-            workPreview: Array<any>,
-        },
+    // 开始重新生成预览图
+    public async startReprocess(
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
-        useApiList: Array<string>,
+        userId: number,  // 用户ID
+        useApiList: Array<string>,  // 使用的API
+        params: {
+            meituauto: any,
+        },
     ) {
-
-
-        // 如果是预览图模式，则只压缩第一张图并使用
-        if (workInfo.isPreview) {
-            fileInfos_url = [fileInfos_url[0]];
-            try {
-                const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressBySize(fileInfos_url, this.max_preview_width, this.max_preview_height);
-                if (responseData_imgCompress.isSuccess) {
-                    fileInfos_url = responseData_imgCompress.data;
-                } else {
-                    workInfo.workStatus = 'failed';
-                    workInfo.workErrorInfos.push({
-                        fromAPI: '压缩预览图',
-                        message: `压缩预览图时出现错误，原因为: ${responseData_imgCompress.message}`,
-                    })
-                    await this.workInfoRepository.save(workInfo);
-                }
-            } catch (error) {
-                workInfo.workStatus = 'failed';
-                workInfo.workErrorInfos.push({
-                    fromAPI: '压缩预览图',
-                    message: `压缩预览图时出现错误，原因为: ${error}`,
-                })
-                await this.workInfoRepository.save(workInfo);
-            }
-        } else {
-
-            // -------------------------不再需要，因为现在修改了预览模式----------------------------
-
-            // // 如果不是预览图，那第一张图就不需要转换格式了
-            // fileInfos_url = fileInfos_url.slice(1);
-            // // 如果除了预览图，没有别的图了，直接修改workInfo的状态为completed
-            // if (fileInfos_url.length === 0) {
-            //     workInfo.workStatus = 'completed';
-            //     // workInfo.workUsePoints不用写，因为如果除了预览图没有别的图了，也就不用扣除点数了，也就不用修改默认的0
-            //     await this.workInfoRepository.save(workInfo);
-            //     // console.log('workInfo: ', workInfo);
-            //     return;
-            // }
-        }
-
-        // 根据执行结果进行下一步操作
         try {
-            const responseData_img2img = await this.datatransService.img2img(fileInfos_url, { outputFormat: 'jpg', quality: 100 });
-            // console.log('啊啊啊啊啊啊啊aaaaaaaaaaaaa : ', responseData_img2img);
-            if (responseData_img2img.isSuccess) {
 
-                // 判断是全部图片转换成功还是部分成功
-                if (responseData_img2img.message === `图片类型转换成功`) {
-                    fileInfos_url = responseData_img2img.data;
-                    if (workInfo.isPreview) {
-                        console.log('aaaaaaaaaaaaaaa阿迪达斯都发生地方fileInfos_url: ', fileInfos_url);
-                        workInfo.workPreview.push(fileInfos_url[0]);
-                        await this.workInfoRepository.save(workInfo);
-                    }
-                    console.log('workInfo: ', workInfo);
-                    // 传值，接力执行修图任务
-                    this.txt2params(workInfo, fileInfos_url, useApiList);
-                } else {
-                    workInfo.workErrorInfos.push({
-                        fromAPI: 'img2img',
-                        message: `图片格式转换时出现错误，原因为: ${responseData_img2img.message}`,
-                    })
-                    await this.workInfoRepository.save(workInfo);
-                    fileInfos_url = responseData_img2img.data;
-                    // 传值，接力执行修图任务
-                    this.txt2params(workInfo, fileInfos_url, useApiList);
-                }
+            // 根据用户Id获取用户信息
+            const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
+            if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
 
-            } else {
-                console.log(responseData_img2img.message);
-                workInfo.workStatus = 'failed';
-                workInfo.workErrorInfos.push({
-                    fromAPI: 'img2img',
-                    message: `图片格式转换时出现错误，原因为: ${responseData_img2img.message}`,
-                })
-                await this.workInfoRepository.save(workInfo);
+            // 判断使用的API列表是否在该用户等级所能使用的列表之内
+            const allowedApiList = getApiList(userInfos.userLevel)
+            if (!useApiList.every(api => allowedApiList.includes(api)))
+                return { isSuccess: false, message: '当前调用的API中，有部分或全部，不在该用户的用户等级所能使用的API列表之内', data: null };
+
+            // 根据今天的日期随机生成一个20位workId
+            let workId: string = '';
+            while (true) {
+                // 生成
+                const now = new Date();
+                const datePart = now.toISOString().slice(0, 19).replace(/-/g, '').replace(/T/, '').replace(/:/g, '');
+                const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+                workId = datePart + randomPart;
+
+                // 检查是否重复
+                const existWorkInfo = await this.workInfoRepository.findOne({ where: { workId } });
+                if (!existWorkInfo) break;
             }
+
+            // 组合workId和临时参数列表存入数据库
+            const paramsInfo = new ParamsInfo();
+            paramsInfo.paramsWorkId = workId;
+            paramsInfo.params = params;
+            await this.paramsRepository.save(paramsInfo);
+
+            // 初始化workInfo
+            const workInfo = new WorkInfo();
+            workInfo.workId = workId;
+            workInfo.workUserId = userId;
+            workInfo.workText = '';
+            workInfo.workApiList = useApiList;
+            workInfo.workStartTime = new Date();
+            workInfo.workStatus = 'processing';
+            workInfo.workUsePoints = 0;
+            workInfo.workUseTime = 0;
+            workInfo.workResult = [];
+            workInfo.workErrorInfos = [];
+            workInfo.isPreview = true;
+            workInfo.workPreview = fileInfos_url;
+            await this.workInfoRepository.save(workInfo);
+            // console.log('workId: ', workId);
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+
+            // 直接开始imgProcess
+            this.imgProcess(workInfo, fileInfos_url, params, useApiList);
+
+            return { isSuccess: true, message: '发起修图任务成功', data: workId };
+
         } catch (error) {
             console.log(error);
-            workInfo.workStatus = 'failed';
-            workInfo.workErrorInfos.push({
-                fromAPI: 'img2img',
-                message: `图片格式转换时出现错误，原因为：${error}`,
-            })
+            return { isSuccess: false, message: `发起修图任务失败，原因为: ${error}`, data: null };
+        }
+
+    }
+
+    // 开始生成最终图    
+    public async startFinalProcess(
+        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
+        userId: number,  // 用户ID
+        useApiList: Array<string>,  // 使用的API
+        params: {
+            meituauto: any,
+        },
+    ) {
+        try {
+
+            // 根据用户Id获取用户信息
+            const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
+            if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
+
+            // 判断使用的API列表是否在该用户等级所能使用的列表之内
+            const allowedApiList = getApiList(userInfos.userLevel)
+            if (!useApiList.every(api => allowedApiList.includes(api)))
+                return { isSuccess: false, message: '当前调用的API中，有部分或全部，不在该用户的用户等级所能使用的API列表之内', data: null };
+
+            // 根据今天的日期随机生成一个20位workId
+            let workId: string = '';
+            while (true) {
+                // 生成
+                const now = new Date();
+                const datePart = now.toISOString().slice(0, 19).replace(/-/g, '').replace(/T/, '').replace(/:/g, '');
+                const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+                workId = datePart + randomPart;
+
+                // 检查是否重复
+                const existWorkInfo = await this.workInfoRepository.findOne({ where: { workId } });
+                if (!existWorkInfo) break;
+            }
+
+            // // 组合workId和临时参数列表存入数据库
+            // const paramsInfo = new ParamsInfo();
+            // paramsInfo.paramsWorkId = workId;
+            // paramsInfo.params = params;
+            // await this.paramsRepository.save(paramsInfo);
+
+            // 初始化workInfo
+            const workInfo = new WorkInfo();
+            workInfo.workId = workId;
+            workInfo.workUserId = userId;
+            workInfo.workText = '';
+            workInfo.workApiList = useApiList;
+            workInfo.workStartTime = new Date();
+            workInfo.workStatus = 'processing';
+            workInfo.workUsePoints = 0;
+            workInfo.workUseTime = 0;
+            workInfo.workResult = [];
+            workInfo.workErrorInfos = [];
+            workInfo.isPreview = false;
+            workInfo.workPreview = [];
             await this.workInfoRepository.save(workInfo);
+            // console.log('workId: ', workId);
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+            // console.log('发起修图任务成功');
+
+            // 直接开始imgProcess
+            this.imgProcess(workInfo, fileInfos_url, params, useApiList);
+
+            return { isSuccess: true, message: '发起修图任务成功', data: workId };
+
+        } catch (error) {
+            console.log(error);
+            return { isSuccess: false, message: `发起修图任务失败，原因为: ${error}`, data: null };
         }
 
     }
@@ -329,164 +381,97 @@ export class ProcessService {
         }
     }
 
-    // 重新生成图片(预览图)
-    public async startReprocess(
-        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
-        userId: number,  // 用户ID
-        useApiList: Array<string>,  // 使用的API
-        params: {
-            meituauto: any,
+    // 图片格式转换
+    private async img2img(
+        workInfo: {
+            workId: string,
+            workUserId: number,
+            workText: string,
+            workApiList: Array<string>,
+            workStartTime: Date,
+            workStatus: string,
+            workUsePoints: number,
+            workUseTime: number,
+            workResult: Array<any>,
+            workErrorInfos: Array<any>,
+            isPreview: boolean,
+            workPreview: Array<any>,
         },
+        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
+        useApiList: Array<string>,
     ) {
-        try {
 
-            // 根据用户Id获取用户信息
-            const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
-            if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
 
-            // 判断使用的API列表是否在该用户等级所能使用的列表之内
-            const allowedApiList = getApiList(userInfos.userLevel)
-            if (!useApiList.every(api => allowedApiList.includes(api)))
-                return { isSuccess: false, message: '当前调用的API中，有部分或全部，不在该用户的用户等级所能使用的API列表之内', data: null };
-
-            // 根据今天的日期随机生成一个20位workId
-            let workId: string = '';
-            while (true) {
-                // 生成
-                const now = new Date();
-                const datePart = now.toISOString().slice(0, 19).replace(/-/g, '').replace(/T/, '').replace(/:/g, '');
-                const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-                workId = datePart + randomPart;
-
-                // 检查是否重复
-                const existWorkInfo = await this.workInfoRepository.findOne({ where: { workId } });
-                if (!existWorkInfo) break;
+        // 如果是预览图模式，则只压缩第一张图并使用
+        if (workInfo.isPreview) {
+            fileInfos_url = [fileInfos_url[0]];
+            try {
+                const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressBySize(fileInfos_url, this.max_preview_width, this.max_preview_height);
+                if (responseData_imgCompress.isSuccess) {
+                    fileInfos_url = responseData_imgCompress.data;
+                } else {
+                    workInfo.workStatus = 'failed';
+                    workInfo.workErrorInfos.push({
+                        fromAPI: '压缩预览图',
+                        message: `压缩预览图时出现错误，原因为: ${responseData_imgCompress.message}`,
+                    })
+                    await this.workInfoRepository.save(workInfo);
+                }
+            } catch (error) {
+                workInfo.workStatus = 'failed';
+                workInfo.workErrorInfos.push({
+                    fromAPI: '压缩预览图',
+                    message: `压缩预览图时出现错误，原因为: ${error}`,
+                })
+                await this.workInfoRepository.save(workInfo);
             }
-
-            // 组合workId和临时参数列表存入数据库
-            const paramsInfo = new ParamsInfo();
-            paramsInfo.paramsWorkId = workId;
-            paramsInfo.params = params;
-            await this.paramsRepository.save(paramsInfo);
-
-            // 初始化workInfo
-            const workInfo = new WorkInfo();
-            workInfo.workId = workId;
-            workInfo.workUserId = userId;
-            workInfo.workText = '';
-            workInfo.workApiList = useApiList;
-            workInfo.workStartTime = new Date();
-            workInfo.workStatus = 'processing';
-            workInfo.workUsePoints = 0;
-            workInfo.workUseTime = 0;
-            workInfo.workResult = [];
-            workInfo.workErrorInfos = [];
-            workInfo.isPreview = true;
-            workInfo.workPreview = fileInfos_url;
-            await this.workInfoRepository.save(workInfo);
-            // console.log('workId: ', workId);
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-
-            // 直接开始imgProcess
-            this.imgProcess(workInfo, fileInfos_url, params, useApiList);
-
-            return { isSuccess: true, message: '发起修图任务成功', data: workId };
-
-        } catch (error) {
-            console.log(error);
-            return { isSuccess: false, message: `发起修图任务失败，原因为: ${error}`, data: null };
         }
 
-    }
-
-    // 批量生成图片    
-    public async startFinalProcess(
-        fileInfos_url: Array<{ fileName: string, fileURL: string }>,
-        userId: number,  // 用户ID
-        useApiList: Array<string>,  // 使用的API
-        params: {
-            meituauto: any,
-        },
-    ) {
+        // 根据执行结果进行下一步操作
         try {
+            const responseData_img2img = await this.datatransService.img2img(fileInfos_url, { outputFormat: 'jpg', quality: 100 });
+            // console.log('啊啊啊啊啊啊啊aaaaaaaaaaaaa : ', responseData_img2img);
+            if (responseData_img2img.isSuccess) {
 
-            // 根据用户Id获取用户信息
-            const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
-            if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
+                // 判断是全部图片转换成功还是部分成功
+                if (responseData_img2img.message === `图片类型转换成功`) {
+                    fileInfos_url = responseData_img2img.data;
+                    if (workInfo.isPreview) {
+                        console.log('aaaaaaaaaaaaaaa阿迪达斯都发生地方fileInfos_url: ', fileInfos_url);
+                        workInfo.workPreview.push(fileInfos_url[0]);
+                        await this.workInfoRepository.save(workInfo);
+                    }
+                    console.log('workInfo: ', workInfo);
+                    // 传值，接力执行修图任务
+                    this.txt2params(workInfo, fileInfos_url, useApiList);
+                } else {
+                    workInfo.workErrorInfos.push({
+                        fromAPI: 'img2img',
+                        message: `图片格式转换时出现错误，原因为: ${responseData_img2img.message}`,
+                    })
+                    await this.workInfoRepository.save(workInfo);
+                    fileInfos_url = responseData_img2img.data;
+                    // 传值，接力执行修图任务
+                    this.txt2params(workInfo, fileInfos_url, useApiList);
+                }
 
-            // 判断使用的API列表是否在该用户等级所能使用的列表之内
-            const allowedApiList = getApiList(userInfos.userLevel)
-            if (!useApiList.every(api => allowedApiList.includes(api)))
-                return { isSuccess: false, message: '当前调用的API中，有部分或全部，不在该用户的用户等级所能使用的API列表之内', data: null };
-
-            // 根据今天的日期随机生成一个20位workId
-            let workId: string = '';
-            while (true) {
-                // 生成
-                const now = new Date();
-                const datePart = now.toISOString().slice(0, 19).replace(/-/g, '').replace(/T/, '').replace(/:/g, '');
-                const randomPart = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-                workId = datePart + randomPart;
-
-                // 检查是否重复
-                const existWorkInfo = await this.workInfoRepository.findOne({ where: { workId } });
-                if (!existWorkInfo) break;
+            } else {
+                console.log(responseData_img2img.message);
+                workInfo.workStatus = 'failed';
+                workInfo.workErrorInfos.push({
+                    fromAPI: 'img2img',
+                    message: `图片格式转换时出现错误，原因为: ${responseData_img2img.message}`,
+                })
+                await this.workInfoRepository.save(workInfo);
             }
-
-            // // 组合workId和临时参数列表存入数据库
-            // const paramsInfo = new ParamsInfo();
-            // paramsInfo.paramsWorkId = workId;
-            // paramsInfo.params = params;
-            // await this.paramsRepository.save(paramsInfo);
-
-            // 初始化workInfo
-            const workInfo = new WorkInfo();
-            workInfo.workId = workId;
-            workInfo.workUserId = userId;
-            workInfo.workText = '';
-            workInfo.workApiList = useApiList;
-            workInfo.workStartTime = new Date();
-            workInfo.workStatus = 'processing';
-            workInfo.workUsePoints = 0;
-            workInfo.workUseTime = 0;
-            workInfo.workResult = [];
-            workInfo.workErrorInfos = [];
-            workInfo.isPreview = false;
-            workInfo.workPreview = [];
-            await this.workInfoRepository.save(workInfo);
-            // console.log('workId: ', workId);
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-            // console.log('发起修图任务成功');
-
-            // 直接开始imgProcess
-            this.imgProcess(workInfo, fileInfos_url, params, useApiList);
-
-            return { isSuccess: true, message: '发起修图任务成功', data: workId };
-
         } catch (error) {
             console.log(error);
-            return { isSuccess: false, message: `发起修图任务失败，原因为: ${error}`, data: null };
+            workInfo.workStatus = 'failed';
+            workInfo.workErrorInfos.push({
+                fromAPI: 'img2img',
+                message: `图片格式转换时出现错误，原因为：${error}`,
+            })
+            await this.workInfoRepository.save(workInfo);
         }
 
     }
@@ -522,7 +507,7 @@ export class ProcessService {
         // 定义一个封装了MeituAuto的Promise
         if (useApiList.includes('meituauto')) {
             const meituAutoPromise = new Promise((resolve, reject) => {
-                this.meituautoService.meitu_auto(fileInfos_url, params.meituauto, async (results_url, message) => {
+                this.meituautoService.meitu_auto(fileInfos_url, params.meituauto, workInfo.isPreview, async (results_url, message) => {
                     // 如果存在错误，写入errorInfos
                     if (message.length > 0) {
 
@@ -533,21 +518,8 @@ export class ProcessService {
                         await this.workInfoRepository.save(workInfo);
                     }
                     if (results_url && results_url.length > 0) {
-                        console.log('meituauto执行结束: ', results_url);
-
-                        // 创建urlToLocal的超时Promise
-                        const urlToLocalTimeoutPromise = new Promise((_, reject) => {
-                            setTimeout(() => {
-                                reject(new Error(`urlToLocal执行超时（${this.timeout_urlToLocal / 1000}秒）`));
-                            }, this.timeout_urlToLocal);
-                        });
-
-                        // 使用Promise.race处理urlToLocal的超时
-                        Promise.race([
-                            this.datatransService.urlToLocal(results_url, 'jpg'),
-                            urlToLocalTimeoutPromise
-                        ]).then(fileInfos => resolve(fileInfos))
-                            .catch(err => reject(err));
+                        console.log('results_url: ', results_url);
+                        resolve(results_url);
                     } else {
                         reject(new Error('meituauto执行后未返回结果'));
                     }
@@ -562,26 +534,17 @@ export class ProcessService {
             });
 
             // 使用Promise.race同时监听meituAutoPromise和timeoutPromise
-            let response_fileInfos: any;
-            let renamed_response_fileInfos: any;
+            let response_fileInfos_url: any;
             try {
-                response_fileInfos = await Promise.race([meituAutoPromise, timeoutPromise]);
-
-                // 创建uploadFiles的超时Promise
-                const uploadFilesTimeoutPromise: any = new Promise((_, reject) => {
-                    setTimeout(() => {
-                        reject(new Error(`uploadFiles执行超时（${this.timeout_uploadFiles / 1000}秒）`));
-                    }, this.timeout_uploadFiles);
-                });
-
-                renamed_response_fileInfos = await this.ossService.reNameFileInfos(response_fileInfos);
+                response_fileInfos_url = await Promise.race([meituAutoPromise, timeoutPromise]);
 
                 // 使用Promise.race处理uploadFiles的超时
-                workInfo.workResult = await Promise.race([
-                    this.ossService.uploadFiles(renamed_response_fileInfos),
-                    uploadFilesTimeoutPromise
-                ]);
-                console.log('此处的workInfo.workResult: ', workInfo.workResult)
+                if (response_fileInfos_url.length > 0)
+                    workInfo.workResult = response_fileInfos_url;
+                else
+                    // 这里不需要抛错，因为如果别的API能处理，那么这里抛错就会阻断其他API的处理;如果别的API处理不了,那么最后workInfo.workResult === fileInfos_url的判定也能最终抛错
+                    workInfo.workResult = fileInfos_url;
+
             } catch (error) {
                 let errorMessage = error.message;
                 // 判断是超时错误，还是其他错误
@@ -600,24 +563,6 @@ export class ProcessService {
                     await this.workInfoRepository.save(workInfo);
                     workInfo.workResult = fileInfos_url;
                 }
-            } finally {
-                if (renamed_response_fileInfos && renamed_response_fileInfos.length > 0) {
-
-                    // 调用deleteFileInfos并处理返回信息，但不阻塞流程
-                    this.datatransService.deleteFileInfos(renamed_response_fileInfos)
-                        .then(result => {
-                            if (!result.isSuccess) {
-                                console.error(result.message); // 记录失败的删除信息
-                            } else {
-                                console.log(result.message); // 记录成功信息
-                            }
-                        })
-                        .catch(err => {
-                            console.error('在尝试删除response_fileInfos时遇到未知错误:', err);
-                        });
-
-                }
-
             }
 
 
@@ -715,13 +660,55 @@ export class ProcessService {
 
     }
 
-    // 获取工作记录
+    // 旧: 获取全部历史记录
     async getWorkInfos(workUserId: number) {
         let workListToGet: any = {};
         workListToGet = await this.workInfoRepository.find({ where: { workUserId } });
         console.log("workListToGet: ", JSON.stringify(workListToGet[0]));
-        return { isSuccess: true, message: '获取工作记录成功', data: workListToGet };
+        return { isSuccess: true, message: '获取全部历史记录成功', data: workListToGet };
     }
+
+    // 新: 获取分页历史记录
+    async getPagedWorkInfos(
+        workUserId: number,                                                     // 用户ID
+        pageIndex: number,                                                      // 页码
+        pageSize: number,                                                       // 每页条目数
+        prop: "workStartTime" | "workText" | "workUsePoints" | "workUseTime",   // 排序字段
+        order: "ascending" | "descending" | null,                               // 升降序
+    ): Promise<{
+        isSuccess: boolean,
+        message: string,
+        data: {
+            workList: WorkInfo[],       // 历史记录列表
+            pageCount: number,          // 总页数
+        }
+    }> {
+
+        try {
+            const skip = (pageIndex - 1) * pageSize; // 计算跳过的记录数
+            const direction = order === 'ascending' ? 'ASC' : 'DESC'; // 转换排序方向
+
+            // 使用 TypeORM 的 queryBuilder 来构建查询
+            const query = this.workInfoRepository.createQueryBuilder('workInfo')
+                .where('workInfo.workUserId = :workUserId', { workUserId })
+                .orderBy(`workInfo.${prop}`, direction)
+                .skip(skip)
+                .take(pageSize);
+
+            const [workList, total] = await query.getManyAndCount(); // 执行查询并获取结果及总数
+
+            const pageCount = Math.ceil(total / pageSize); // 计算总页数
+
+            console.log('pageCount: ', pageCount);
+            return { isSuccess: true, message: '获取分页历史记录成功', data: { workList, pageCount } }
+        } catch (error) {
+            console.error('获取分页历史记录失败：', error);
+            return { isSuccess: false, message: '获取分页历史记录失败', data: error }
+        }
+
+    }
+
+
 
     // 获取txt2params使用的临时参数
     async queryParams(workId: string)
