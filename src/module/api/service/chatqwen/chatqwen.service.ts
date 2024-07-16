@@ -30,7 +30,24 @@ export class ChatqwenService {
     private tools = paramsForApis;
 
 
-    private async get_response(messages) {
+    private async get_response(messages: object, userLevel: number) {
+        // 根据用户等级选用不同模型
+        let model: string = '';
+        switch (userLevel) {
+            case 0:
+                model = 'qwen-plus';
+                break;
+            case 1:
+                model = 'qwen-max-longcontext';
+                break;
+            case 2:
+                model = 'qwen-max-longcontext';
+                break;
+            default:
+                model = 'qwen-plus';
+        }
+        console.log('model: ', model);
+
         const api_key = process.env.QWEN_API_KEY;
         const url = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation';
 
@@ -39,7 +56,7 @@ export class ChatqwenService {
             'Authorization': `Bearer ${api_key}`
         };
         const body = {
-            'model': 'qwen-plus',
+            'model': model,
             "input": {
                 "messages": messages
             },
@@ -198,12 +215,22 @@ export class ChatqwenService {
 
         console.log("requiredParams: ", requiredParams);
 
-        return { ...inputTemplateParams, ...requiredParams };
+        let mergedParams = { ...inputTemplateParams, ...requiredParams };
+
+        //如果空值，给默认值
+        if (Object.keys(mergedParams).length === 0) {
+
+            if (input_service === 'meituauto')
+                mergedParams = this.meituautoService.defaultParams;
+
+        }
+
+        return mergedParams;
 
     }
 
 
-    async txt2param(input_message: string, input_service: string, inputTemplateParams: object) {
+    async txt2param(input_message: string, input_service: string, inputTemplateParams: object, userLevel: number) {
         console.log('txt2param内的inputTemplateParams: ', inputTemplateParams);
 
         // 读取参数列表，合并预设模板
@@ -232,7 +259,7 @@ export class ChatqwenService {
         )
 
         //获取API端返回值
-        const response = await this.get_response(message);
+        const response = await this.get_response(message, userLevel);
         console.log('response.output.choices[0].message.tool_calls: ', response.output.choices[0].message.tool_calls);
 
 

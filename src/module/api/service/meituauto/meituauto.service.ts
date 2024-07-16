@@ -61,6 +61,19 @@ export class MeituautoService {
         black_hair: 0,                                  // 发色加深
         smooth_face_skin_alpha: [0, 0, 0, 0, 0],        // 脸部磨皮
         smooth_not_face_skin_alpha: [0, 0, 0, 0, 0],    // 身体磨皮
+        // 脸部优化
+        fleck_clean_flag: 0,                                // 祛斑祛痘
+        lip_remove_alpha: [0, 0, 0, 0, 0],                  // 祛唇纹
+        wrinkle_nasolabial_removal_alpha: [0, 0, 0, 0, 0],  // 祛法令纹
+        black_head_clean_flag: 0,                           // 祛黑头/脂肪粒
+        remove_pouch: [0, 0, 0, 0, 0],                      // 祛黑眼圈
+        wrinkle_neck_removal_alpha: [0, 0, 0, 0, 0],        // 祛颈纹
+        wrinkle_cheek_removal_alpha: [0, 0, 0, 0, 0],       // 祛面颊纹
+        double_chin: 0,                                     // 祛双下巴
+        wrinkle_forehead_removal_alpha: [0, 0, 0, 0, 0],    // 祛抬头纹
+        wrinkle_periorbital_removal_alpha: [0, 0, 0, 0, 0], // 祛眼周纹
+        shiny_clean_alpha: [0, 0, 0, 0, 0],                 // 祛油光
+        nevus_removal_flag: 0,                              // 祛痣_脸部
         // HSL色彩调整相关属性
         hsl_hue_red: 0,                                 // 色相_红色，调整红色的主色调
         hsl_hue_orange: 0,                              // 色相_橙色，调整橙色的主色调
@@ -162,6 +175,40 @@ export class MeituautoService {
         },
 
 
+    }
+
+    // 当无参数时，提供给API的默认参数
+    public defaultParams = {
+        awb_norm_coef: 50,
+        exposure_norm_coef: 50,
+        dehaze_coef: 5,
+        face_beauty_alpha: [50, 50, 50, 50, 50],
+        face_restore_alpha: [20, 20, 20, 20, 20],
+        skin_white_alpha: [20, 20, 20, 20, 20],
+        body_dullness_remove_alpha: [30, 30, 30, 30, 30],
+        skin_fleck_clean_flag: [1, 1, 1, 1, 1],
+        smooth_face_skin_alpha: [10, 10, 10, 10, 10],
+        smooth_not_face_skin_alpha: [20, 20, 20, 20, 20],
+        lipstick_deepen: [15, 15, 15, 15, 15],
+        highlight_alpha: [15, 15, 15, 15, 15],
+        facial_deepen: [15, 15, 15, 15, 15],
+        bright_eye: [15, 15, 15, 15, 15],
+        eyebrow_deepen: [20, 20, 20, 20, 20],
+        eyeshadow_deepen: [20, 20, 20, 20, 20],
+        shadow_light: [25, 25, 25, 25, 25],
+        narrow_face: [-40, -40, -40, -40, -40],
+        fleck_clean_flag: [1, 1, 1, 1, 1],                          // 祛斑祛痘
+        lip_remove_alpha: [30, 30, 30, 30, 30],                     // 祛唇纹
+        wrinkle_nasolabial_removal_alpha: [20, 20, 20, 20, 20],     // 祛法令纹
+        black_head_clean_flag: [1, 1, 1, 1, 1],                     // 祛黑头/脂肪粒
+        remove_pouch: [20, 20, 20, 20, 20],                         // 祛黑眼圈
+        wrinkle_neck_removal_alpha: [30, 30, 30, 30, 30],           // 祛颈纹
+        wrinkle_cheek_removal_alpha: [20, 20, 20, 20, 20],          // 祛面颊纹
+        double_chin: [1, 1, 1, 1, 1],                               // 祛双下巴
+        wrinkle_forehead_removal_alpha: [20, 20, 20, 20, 20],       // 祛抬头纹
+        wrinkle_periorbital_removal_alpha: [20, 20, 20, 20, 20],    // 祛眼周纹
+        shiny_clean_alpha: [20, 20, 20, 20, 20],                    // 祛油光
+        nevus_removal_flag: [1, 1, 1, 1, 1],                        // 祛痣_脸部
     }
 
 
@@ -661,31 +708,51 @@ export class MeituautoService {
             "req_mask_version": 0,
             "people_type": [
                 {
-                    "key": "child",
-                    "gender": 0,
-                    "name": "儿童",
-                    "age": [0, 14]
-                }, {
+                    "age": [
+                        15,
+                        49
+                    ],
+                    "gender": 1,
                     "key": "man",
-                    "gender": 1,
-                    "name": "成年男子",
-                    "age": [15, 49]
-                }, {
+                    "name": "男"
+                },
+                {
+                    "age": [
+                        15,
+                        49
+                    ],
+                    "gender": 0,
                     "key": "woman",
+                    "name": "女"
+                },
+                {
+                    "age": [
+                        0,
+                        14
+                    ],
                     "gender": 0,
-                    "name": "成年女子",
-                    "age": [15, 49]
-                }, {
-                    "key": "oldman",
-                    "gender": 1,
-                    "name": "年长男子",
-                    "age": [50, 100]
-                }, {
+                    "key": "child",
+                    "name": "儿童"
+                },
+                {
+                    "age": [
+                        50,
+                        100
+                    ],
+                    "gender": 0,
                     "key": "oldwoman",
-                    "gender": 0,
-                    "name": "年长女子",
-                    "age": [50, 100]
-                }],
+                    "name": "老"
+                },
+                {
+                    "age": [
+                        50,
+                        100
+                    ],
+                    "gender": 1,
+                    "key": "oldman",
+                    "name": "老"
+                }
+            ],
             "output": {
                 "format": "jpg",
                 "preview_size": 3000,

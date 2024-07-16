@@ -30,7 +30,8 @@ export class ProcessController {
             req.body.text,
             req.user.userId,
             req.body.useApiList,
-            req.body.selectedTemplateParams
+            req.body.selectedTemplateParams,
+            req.user.userLevel,
         )
     }
 

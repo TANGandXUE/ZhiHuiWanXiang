@@ -62,6 +62,7 @@ export class ProcessService {
         userId: number,  // 用户ID
         useApiList: Array<string>,  // 使用的API
         selectedTemplateParams: object, // 使用的模板参数
+        userLevel: number,  // 用户等级
 
     ): Promise<{ isSuccess: boolean, message: string, data: any }> {
 
@@ -126,7 +127,7 @@ export class ProcessService {
             // console.log('发起修图任务成功');
 
             // 启动异步修图任务的第一步--转换图片格式
-            this.img2img(workInfo, fileInfos_url, useApiList, selectedTemplateParams);
+            this.img2img(workInfo, fileInfos_url, useApiList, selectedTemplateParams, userLevel);
 
             return { isSuccess: true, message: '发起修图任务成功', data: workId };
 
@@ -319,6 +320,7 @@ export class ProcessService {
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         useApiList: Array<string>,
         selectedTemplateParams: object, // 使用的模板参数
+        userLevel: number,  // 用户等级
     ) {
         try {
 
@@ -338,7 +340,7 @@ export class ProcessService {
                 if (selectedTemplateParams['meituauto'])
                     inputTemplateParams = selectedTemplateParams['meituauto'];
 
-                params['meituauto'] = await this.chatqwenService.txt2param(workInfo.workText, "meituauto", inputTemplateParams);
+                params['meituauto'] = await this.chatqwenService.txt2param(workInfo.workText, "meituauto", inputTemplateParams, userLevel);
                 // if (Object.keys(params['meituauto']).length === 0) isSuccess = false;
             }
             // 生成其他参数...
@@ -414,6 +416,7 @@ export class ProcessService {
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         useApiList: Array<string>,
         selectedTemplateParams: object, // 使用的模板参数
+        userLevel: number,  // 用户等级
     ) {
 
 
@@ -462,7 +465,7 @@ export class ProcessService {
 
                     console.log('workInfo: ', workInfo);
                     // 传值，接力执行修图任务
-                    this.txt2params(workInfo, fileInfos_url, useApiList, selectedTemplateParams);
+                    this.txt2params(workInfo, fileInfos_url, useApiList, selectedTemplateParams, userLevel);
                 } else {
                     workInfo.workErrorInfos.push({
                         fromAPI: 'img2img',
@@ -471,7 +474,7 @@ export class ProcessService {
                     await this.workInfoRepository.save(workInfo);
                     fileInfos_url = responseData_img2img.data;
                     // 传值，接力执行修图任务
-                    this.txt2params(workInfo, fileInfos_url, useApiList, selectedTemplateParams);
+                    this.txt2params(workInfo, fileInfos_url, useApiList, selectedTemplateParams, userLevel);
                 }
 
             } else {

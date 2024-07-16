@@ -12,19 +12,19 @@ export const paramsForApis = [
                     "bright_low_dark_image_flag": {
                         "type": "integer",
                         "enum": [0, 1],
-                        "description": "暗角提亮"
+                        "description": "暗角修正"
                     },
                     "awb_norm_coef": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "智能白平衡"
+                        "description": "白平衡修正"
                     },
                     "exposure_norm_coef": {
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 100,
-                        "description": "智能曝光"
+                        "description": "曝光修正"
                     },
                     "dehaze_coef": {
                         "type": "integer",
@@ -48,7 +48,7 @@ export const paramsForApis = [
                         "type": "integer",
                         "minimum": -500,
                         "maximum": 500,
-                        "description": "曝光"
+                        "description": "曝光/亮度"
                     },
                     "sharpness": {
                         "type": "integer",
@@ -191,6 +191,74 @@ export const paramsForApis = [
                         "minimum": 0,
                         "maximum": 100,
                         "description": "身体磨皮"
+                    },
+                    "fleck_clean_flag": {
+                        "type": "integer",
+                        "enum": [0, 1],
+                        "description": "去除斑祛痘"
+                    },
+                    "lip_remove_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除唇纹"
+                    },
+                    "wrinkle_nasolabial_removal_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除法令纹"
+                    },
+                    "black_head_clean_flag": {
+                        "type": "integer",
+                        "enum": [0, 1],
+                        "description": "去除黑头/脂肪粒"
+                    },
+                    "remove_pouch": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除黑眼圈"
+                    },
+                    "wrinkle_neck_removal_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除颈纹"
+                    },
+                    "wrinkle_cheek_removal_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除面颊纹"
+                    },
+                    "double_chin": {
+                        "type": "integer",
+                        "enum": [0, 1],
+                        "description": "去除双下巴"
+                    },
+                    "wrinkle_forehead_removal_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除抬头纹"
+                    },
+                    "wrinkle_periorbital_removal_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除眼周纹"
+                    },
+                    "shiny_clean_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "description": "去除油光"
+                    },
+                    "nevus_removal_flag": {
+                        "type": "integer",
+                        "enum": [0, 1],
+                        "description": "去除痣_脸部"
                     },
                     "filter": {
                         "type": "object",
