@@ -2,23 +2,21 @@
 import { Controller, Post, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { PayService } from '../../service/pay/pay.service';
 import { JwtAuthGuard } from 'src/module/user/others/jwt-auth.guard';
+import { use } from 'passport';
 
 @Controller('api/pay')
 export class PayController {
     constructor(private readonly payService: PayService) { }
 
     @Post('start')
+    @UseGuards(JwtAuthGuard)
     async startPayment(@Req() req): Promise<any> {
         console.log(req.body.payMethod);
         const responseData = await this.payService.startPayment(
             req.body.itemName,
-            req.body.itemPrice,
             req.body.payMethod,
             req.body.deviceType,
-            req.body.userId,
-            req.body.addPoints,
-            req.body.addExpireDate,
-            req.body.addLevel,
+            req.user.userId,
         );
         console.log('支付已发起:', responseData);
         return responseData; // 根据实际情况返回给前端的信息

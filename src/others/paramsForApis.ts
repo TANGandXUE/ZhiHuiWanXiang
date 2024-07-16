@@ -80,12 +80,12 @@ export const paramsForApis = [
                         "maximum": 100,
                         "description": "色温"
                     },
-                    "hue": {
-                        "type": "integer",
-                        "minimum": -100,
-                        "maximum": 100,
-                        "description": "色相"
-                    },
+                    // "hue": {
+                    //     "type": "integer",
+                    //     "minimum": -100,
+                    //     "maximum": 100,
+                    //     "description": "色相"
+                    // },
                     "saturability": {
                         "type": "integer",
                         "minimum": -100,
@@ -378,6 +378,55 @@ export const paramsForApis = [
                         "description": "HSL: 品红色明亮度",
                         "minimum": -100,
                         "maximum": 100
+                    },
+                    "lipstick_deepen": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "唇妆增强"
+                    },
+                    "highlight_alpha": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "高光立体"
+                    },
+                    "facial_deepen": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "脸颊加深"
+                    },
+                    "bright_eye": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "亮眼"
+                    },
+                    "eyebrow_deepen": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "眉毛增强"
+                    },
+                    "eyeshadow_deepen": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "眼妆增强"
+                    },
+                    "shadow_light": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100,
+                        "default": 0,
+                        "description": "阴影立体"
                     },
                     "ai_shrink_head": {
                         "type": "integer",

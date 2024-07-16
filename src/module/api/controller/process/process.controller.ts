@@ -1,13 +1,17 @@
 import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/module/user/others/jwt-auth.guard';
 import { ProcessService } from '../../service/process/process.service';
+import { SqlService } from 'src/module/sql/service/sql/sql.service';
 import { getApiList } from 'src/others/apiList';
 import { paramsForApis } from 'src/others/paramsForApis';
 
 @Controller('api/process')
 export class ProcessController {
 
-    constructor(private readonly processService: ProcessService) { }
+    constructor(
+        private readonly processService: ProcessService,
+        private readonly sqlService: SqlService,
+    ) { }
 
     // 查询API List
     @Get('getapilist')
@@ -26,6 +30,7 @@ export class ProcessController {
             req.body.text,
             req.user.userId,
             req.body.useApiList,
+            req.body.selectedTemplateParams
         )
     }
 
@@ -52,6 +57,7 @@ export class ProcessController {
             req.user.userId,
             req.body.useApiList,
             req.body.params,
+            req.body.text,
         )
     }
 
@@ -97,6 +103,15 @@ export class ProcessController {
     @UseGuards(JwtAuthGuard)
     queryAllParams() {
         return { isSuccess: true, message: '查询txt2params使用的所有参数成功', data: paramsForApis };
+    }
+
+    // 判断当前点数够不够完成修图
+    @Post('ispointsenough')
+    @UseGuards(JwtAuthGuard)
+    async isPointsEnough(@Req() req) {
+
+        return await this.sqlService.isPointsEnoughByUserId(req.user.userId, req.body.fileNum);
+
     }
 
 }

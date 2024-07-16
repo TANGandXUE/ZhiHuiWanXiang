@@ -98,7 +98,7 @@ export class ApiController {
     @Get('test-chatqwen')
     async chatqwen() {
         const response = await this.chatqwenService.txt2param(
-            '光线调整一下，人脸修一修，别修太多。', 'meituauto'
+            '光线调整一下，人脸修一修，别修太多。', 'meituauto', {}
         )
         console.log(response);
     }

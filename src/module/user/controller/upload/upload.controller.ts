@@ -94,7 +94,7 @@ export class UploadController {
         let status: boolean = true;
 
         // 调用meituauto接口
-        params['meituauto'] = await this.chatqwenService.txt2param(req.body.inputText, "meituauto");
+        params['meituauto'] = await this.chatqwenService.txt2param(req.body.inputText, "meituauto", {});
         if (Object.keys(params['meituauto']).length === 0) status = false;
         // 调用其他接口...
 

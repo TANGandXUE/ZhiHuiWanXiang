@@ -187,6 +187,35 @@ export class SqlService {
 
     }
 
+
+    // 判断点数够不够(通过用户ID)
+    async isPointsEnoughByUserId(userId: number, fileNum: number) {
+        let userToGet = await this.userInfoRepository.findOne({ where: { userId } });
+
+        // 检查用户是否存在
+        if (!userToGet) {
+            console.log("用户不存在");
+            return { isSuccess: false, message: '用户不存在' };
+        }
+
+        const deductPointsForProcess = Number(process.env.DEDUCT_POINTS_FOR_PROCESS || 10);
+        const pointsToDeduct = fileNum * deductPointsForProcess;
+
+        // console.log("扣除点数: ", pointsToDeduct);
+        // console.log('userToGet.userPoints: ', userToGet.userPoints);
+        // console.log('剩余点数: ', userToGet.userPoints - pointsToDeduct);
+        // console.log('最低点数: ', minPointsAfterDeduct);
+        // console.log('计算结果: ', (userToGet.userPoints - pointsToDeduct) < minPointsAfterDeduct);
+
+        if (userToGet.userPoints - pointsToDeduct < minPointsAfterDeduct)
+            return { isSuccess: false, message: '点数不足', data: userToGet.userPoints }
+        else {
+            console.log("扣除点数成功");
+            return { isSuccess: true, message: '点数充足', data: userToGet.userPoints };
+        }
+
+    }
+
     // 扣除点数
     async deductPoints(userPhone: string, userEmail: string, pointsToDeduct: number) {
         let userToUpdate: any = {};
@@ -330,8 +359,8 @@ export class SqlService {
 
 
 
-    updateWorkInfo(){
-        
+    updateWorkInfo() {
+
     }
 
 }

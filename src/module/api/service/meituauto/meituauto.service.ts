@@ -86,6 +86,14 @@ export class MeituautoService {
         hsl_luma_blue: 0,                               // 明亮度_蓝色，调整蓝色区域的明暗度
         hsl_luma_violet: 0,                             // 明亮度_紫罗兰，调整紫罗兰色区域的明暗度
         hsl_luma_magenta: 0,                            // 明亮度_品红，调整品红色区域的明暗度
+        // 妆容调整
+        lipstick_deepen: [0, 0, 0, 0, 0],                            // 唇妆增强
+        highlight_alpha: [0, 0, 0, 0, 0],                            // 高光立体
+        facial_deepen: [0, 0, 0, 0, 0],                              // 脸颊加深
+        bright_eye: [0, 0, 0, 0, 0],                                 // 亮眼
+        eyebrow_deepen: [0, 0, 0, 0, 0],                             // 眉毛增强
+        eyeshadow_deepen: [0, 0, 0, 0, 0],                           // 眼妆增强
+        shadow_light: [0, 0, 0, 0, 0],                               // 阴影立体
         // 脸型调整
         ai_shrink_head: [0, 0, 0, 0, 0],                             // 缩头
         face_forehead: [0, 0, 0, 0, 0],                              // 额头调整
@@ -192,7 +200,7 @@ export class MeituautoService {
 
         // 确定请求地址（预览图和原图请求地址区分化）
         let url = ''
-        if(isPreview)
+        if (isPreview)
             url = this.startProcessUrl_preview
         else
             url = this.startProcessUrl;
@@ -239,6 +247,12 @@ export class MeituautoService {
                 response.data.code === 90024
             ) {
                 return 90024;
+            } else if (
+                // key过期了
+                response.data.code === 90002
+            ) {
+                errorMessages.push(`meituAuto的密钥已过期，请与智绘万象官方联系`)
+                throw new Error(`meituAuto的密钥已过期，请与智绘万象官方联系`)
             } else {
                 const errorFileName = msgIdToFileNameMap.get(msgId);
                 errorMessages.push(`queryAsyncResult方法内，查询${errorFileName}的任务时出现异常。错误代码为${response.data.code}，错误信息为：'${response.data.message}'`);
@@ -783,6 +797,7 @@ export class MeituautoService {
         }
 
         // 所有消息ID已处理完，调用回调函数
+        console.log('errorMessages: ', errorMessages);
         callback(fileInfos_url_output, errorMessages);
     }
 

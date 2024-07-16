@@ -7,6 +7,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import { Pay } from 'src/entities/pay.entity';
 import { UserInfo } from 'src/entities/userinfo.entity';
+import { getGoodList } from 'src/others/goodList';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -56,16 +57,20 @@ export class PayService {
         return `${datePart}${randomPart}`;
     }
 
-    public async startPayment(itemName: string, itemPrice: string, payMethod: string, deviceType: string, userId: number, addPoints: number, addExpireDate: number, addLevel: number): Promise<any> {
+    public async startPayment(itemName: string, payMethod: string, deviceType: string, userId: number): Promise<any> {
+
+        // 根据名称查询商品相关参数
+        const { goodName, goodPrice, goodAddPoints, goodAddExpireDate, goodAddLevel } = getGoodList(itemName);
+
         // 传入订单参数 to 数据库
         this.userId = userId;
-        this.addPoints = addPoints;
-        if (addExpireDate != null) this.addExpireDate = addExpireDate;
-        this.addLevel = addLevel;
+        this.addPoints = goodAddPoints;
+        if (goodAddExpireDate != null) this.addExpireDate = goodAddExpireDate;
+        this.addLevel = goodAddLevel;
 
         // 传入订单参数 to Snapay
-        this.data.name = itemName;
-        this.data.money = itemPrice;
+        this.data.name = goodName;
+        this.data.money = goodPrice;
         this.data.type = payMethod;
         this.data.device = deviceType;
         // 递归生成订单号，直至无重复为止
@@ -127,6 +132,8 @@ export class PayService {
         delete req.query.sign_type;
         const calculatedSign = this.sign(req.query, this.apiKey);
 
+        console.log('处理支付结果执行到了');
+
         if (receivedSign === calculatedSign) {
 
             // 支付结果 => 支付数据库
@@ -143,12 +150,20 @@ export class PayService {
 
             // 购买的权益 => 用户信息数据库
             const userInfo = await this.userInfoRepository.findOne({ where: { userId: this.userId } });
-            // console.log("userPoints: ", userInfo.userPoints);
+            console.log("userPoints: ", userInfo.userPoints);
             // console.log("addPoints: ", this.addPoints);
             // console.log("userLevel: ", userInfo.userLevel);
             // console.log("addLevel: ", this.addLevel);
             userInfo.userPoints = userInfo.userPoints + this.addPoints;
-            userInfo.userLevel = this.addLevel;
+            // 会员等级相关参数
+            if (this.addLevel === 2)
+                userInfo.userLevel = this.addLevel;
+            else if (this.addLevel < 2 && userInfo.userExpireDate > new Date())
+                userInfo.userLevel = 2;
+            else if (this.addLevel < 2 && userInfo.userExpireDate <= new Date())
+                userInfo.userLevel = 1;
+            else
+                userInfo.userLevel = userInfo.userLevel;
             // 会员有效期的相关参数
             if (this.addExpireDate > 0) {
                 if (userInfo.userExpireDate < new Date())
@@ -170,6 +185,8 @@ export class PayService {
 
     // 主动查询支付结果
     public async queryPaymentStatus(payerTradeId: string): Promise<object> {
+        console.log("payerTradeId: ", payerTradeId)
+        console.log("是否支付成功:", await this.elementExist('payerTradeId', payerTradeId));
         if (await this.elementExist('payerTradeId', payerTradeId)) {
             return {
                 isSuccess: true,

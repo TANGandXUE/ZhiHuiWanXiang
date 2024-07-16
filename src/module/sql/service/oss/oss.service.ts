@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as OSS from 'ali-oss';
+import axios from 'axios';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { promisify } from 'util'; // 引入promisify用于转换异步回调函数为Promise
@@ -27,11 +28,22 @@ export class OssService {
 
         try {
             for (const fileInfo of fileInfos) {
-                // 上传文件到OSS，'object'是OSS中的文件名，'localfile'是本地文件的路径。
+                // 上传文件到OSS
                 const uploadResult = await this.client.put(fileInfo.fileName, fileInfo.filePath);
-                // console.log('上传文件到OSS成功:', uploadResult);
 
-                results_url.push({ fileName: fileInfo.fileName, fileURL: uploadResult.url });
+                // 将URL转换为HTTPS
+                let httpsUrl = uploadResult.url.replace(/^http:/, 'https:');
+
+                try {
+                    // 使用axios检查HTTPS URL是否可达
+                    await axios.head(httpsUrl);
+                    // 如果没有抛出异常，则URL可达，将其存储在results_url中
+                    results_url.push({ fileName: fileInfo.fileName, fileURL: httpsUrl });
+                } catch (error) {
+                    // 如果URL不可达，存储原始URL
+                    console.error(`HTTPS URL ${httpsUrl} is not accessible:`, error);
+                    results_url.push({ fileName: fileInfo.fileName, fileURL: uploadResult.url });
+                }
             }
         }
         catch (error) {

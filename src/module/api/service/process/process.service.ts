@@ -29,7 +29,6 @@ export class ProcessService {
         private readonly chatqwenService: ChatqwenService,
         private readonly meituautoService: MeituautoService,
         private readonly datatransService: DatatransService,
-        private readonly ossService: OssService,
         private readonly sqlService: SqlService,
 
         // 数据库相关
@@ -49,6 +48,7 @@ export class ProcessService {
     timeout_uploadFiles: number = Number(process.env.UPLOAD_TIMEOUT || 60000)
     max_preview_width: number = Number(process.env.MAX_PREVIEW_WIDTH || 1200)
     max_preview_height: number = Number(process.env.MAX_PREVIEW_HEIGHT || 1200)
+    max_preview_pixels: number = Number(process.env.MAX_PREVIEW_PIXELS || 3600000)
 
 
 
@@ -61,6 +61,7 @@ export class ProcessService {
         text: string,    // 自然语言
         userId: number,  // 用户ID
         useApiList: Array<string>,  // 使用的API
+        selectedTemplateParams: object, // 使用的模板参数
 
     ): Promise<{ isSuccess: boolean, message: string, data: any }> {
 
@@ -69,6 +70,12 @@ export class ProcessService {
             // 根据用户Id获取用户信息
             const userInfos = await this.userInfoRepository.findOne({ where: { userId } })
             if (!userInfos) return { isSuccess: false, message: '用户不存在', data: null }
+
+            // 判断用户点数是否充足
+            const deductPointsForProcess = Number(process.env.DEDUCT_POINTS_FOR_PROCESS || 10);
+            const pointsToDeduct = fileInfos_url.length * deductPointsForProcess;
+            if (!await this.sqlService.isPointsEnoughByUserId(userId, fileInfos_url.length))
+                return { isSuccess: false, message: `处理当前图片列表需要${pointsToDeduct}点绘点，您的绘点不足`, data: null }
 
             // 判断使用的API列表是否在该用户等级所能使用的列表之内
             const allowedApiList = getApiList(userInfos.userLevel)
@@ -119,7 +126,7 @@ export class ProcessService {
             // console.log('发起修图任务成功');
 
             // 启动异步修图任务的第一步--转换图片格式
-            this.img2img(workInfo, fileInfos_url, useApiList);
+            this.img2img(workInfo, fileInfos_url, useApiList, selectedTemplateParams);
 
             return { isSuccess: true, message: '发起修图任务成功', data: workId };
 
@@ -219,6 +226,7 @@ export class ProcessService {
         params: {
             meituauto: any,
         },
+        text: string,    // 自然语言
     ) {
         try {
 
@@ -255,7 +263,7 @@ export class ProcessService {
             const workInfo = new WorkInfo();
             workInfo.workId = workId;
             workInfo.workUserId = userId;
-            workInfo.workText = '';
+            workInfo.workText = text;
             workInfo.workApiList = useApiList;
             workInfo.workStartTime = new Date();
             workInfo.workStatus = 'processing';
@@ -310,6 +318,7 @@ export class ProcessService {
         },
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         useApiList: Array<string>,
+        selectedTemplateParams: object, // 使用的模板参数
     ) {
         try {
 
@@ -324,8 +333,13 @@ export class ProcessService {
 
             // 生成meituauto参数
             if (useApiList.includes('meituauto')) {
-                params['meituauto'] = await this.chatqwenService.txt2param(workInfo.workText, "meituauto");
-                if (Object.keys(params['meituauto']).length === 0) isSuccess = false;
+                // 初始化参数赋值
+                let inputTemplateParams: object = {};
+                if (selectedTemplateParams['meituauto'])
+                    inputTemplateParams = selectedTemplateParams['meituauto'];
+
+                params['meituauto'] = await this.chatqwenService.txt2param(workInfo.workText, "meituauto", inputTemplateParams);
+                // if (Object.keys(params['meituauto']).length === 0) isSuccess = false;
             }
             // 生成其他参数...
 
@@ -335,7 +349,7 @@ export class ProcessService {
 
 
 
-            console.log('params: ', params);
+            console.log('完整地返回params为: ', params);
 
             // 组合workId和临时参数列表存入数据库
             try {
@@ -399,32 +413,13 @@ export class ProcessService {
         },
         fileInfos_url: Array<{ fileName: string, fileURL: string }>,
         useApiList: Array<string>,
+        selectedTemplateParams: object, // 使用的模板参数
     ) {
 
 
         // 如果是预览图模式，则只压缩第一张图并使用
         if (workInfo.isPreview) {
             fileInfos_url = [fileInfos_url[0]];
-            try {
-                const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressBySize(fileInfos_url, this.max_preview_width, this.max_preview_height);
-                if (responseData_imgCompress.isSuccess) {
-                    fileInfos_url = responseData_imgCompress.data;
-                } else {
-                    workInfo.workStatus = 'failed';
-                    workInfo.workErrorInfos.push({
-                        fromAPI: '压缩预览图',
-                        message: `压缩预览图时出现错误，原因为: ${responseData_imgCompress.message}`,
-                    })
-                    await this.workInfoRepository.save(workInfo);
-                }
-            } catch (error) {
-                workInfo.workStatus = 'failed';
-                workInfo.workErrorInfos.push({
-                    fromAPI: '压缩预览图',
-                    message: `压缩预览图时出现错误，原因为: ${error}`,
-                })
-                await this.workInfoRepository.save(workInfo);
-            }
         }
 
         // 根据执行结果进行下一步操作
@@ -437,13 +432,37 @@ export class ProcessService {
                 if (responseData_img2img.message === `图片类型转换成功`) {
                     fileInfos_url = responseData_img2img.data;
                     if (workInfo.isPreview) {
-                        console.log('aaaaaaaaaaaaaaa阿迪达斯都发生地方fileInfos_url: ', fileInfos_url);
+
+                        // 压缩图片
+                        try {
+                            const responseData_imgCompress: { isSuccess: boolean, message: string, data: any } = await this.datatransService.imgCompressByMaxPixels(fileInfos_url, this.max_preview_pixels);
+                            if (responseData_imgCompress.isSuccess) {
+                                fileInfos_url = responseData_imgCompress.data;
+                            } else {
+                                workInfo.workStatus = 'failed';
+                                workInfo.workErrorInfos.push({
+                                    fromAPI: '压缩预览图',
+                                    message: `压缩预览图时出现错误，原因为: ${responseData_imgCompress.message}`,
+                                })
+                                await this.workInfoRepository.save(workInfo);
+                            }
+                        } catch (error) {
+                            workInfo.workStatus = 'failed';
+                            workInfo.workErrorInfos.push({
+                                fromAPI: '压缩预览图',
+                                message: `压缩预览图时出现错误，原因为: ${error}`,
+                            })
+                            await this.workInfoRepository.save(workInfo);
+                        }
+
+
                         workInfo.workPreview.push(fileInfos_url[0]);
                         await this.workInfoRepository.save(workInfo);
                     }
+
                     console.log('workInfo: ', workInfo);
                     // 传值，接力执行修图任务
-                    this.txt2params(workInfo, fileInfos_url, useApiList);
+                    this.txt2params(workInfo, fileInfos_url, useApiList, selectedTemplateParams);
                 } else {
                     workInfo.workErrorInfos.push({
                         fromAPI: 'img2img',
@@ -452,7 +471,7 @@ export class ProcessService {
                     await this.workInfoRepository.save(workInfo);
                     fileInfos_url = responseData_img2img.data;
                     // 传值，接力执行修图任务
-                    this.txt2params(workInfo, fileInfos_url, useApiList);
+                    this.txt2params(workInfo, fileInfos_url, useApiList, selectedTemplateParams);
                 }
 
             } else {
@@ -507,14 +526,18 @@ export class ProcessService {
         // 定义一个封装了MeituAuto的Promise
         if (useApiList.includes('meituauto')) {
             const meituAutoPromise = new Promise((resolve, reject) => {
-                this.meituautoService.meitu_auto(fileInfos_url, params.meituauto, workInfo.isPreview, async (results_url, message) => {
+                this.meituautoService.meitu_auto(fileInfos_url, params.meituauto, workInfo.isPreview, async (results_url, messages) => {
                     // 如果存在错误，写入errorInfos
-                    if (message.length > 0) {
-
-                        workInfo.workErrorInfos.push({
-                            fromAPI: 'meituAuto',
-                            message,
+                    console.log('message: ', messages);
+                    if (messages.length > 0) {
+                        console.log('这里执行到了');
+                        messages.forEach((msg) => {
+                            workInfo.workErrorInfos.push({
+                                fromAPI: 'meituAuto',
+                                message: msg,
+                            });
                         });
+                        console.log('workInfo: ', workInfo.workErrorInfos);
                         await this.workInfoRepository.save(workInfo);
                     }
                     if (results_url && results_url.length > 0) {
@@ -597,6 +620,7 @@ export class ProcessService {
         }
 
     }
+
 
 
     // 扣除点数
@@ -689,13 +713,25 @@ export class ProcessService {
             const direction = order === 'ascending' ? 'ASC' : 'DESC'; // 转换排序方向
 
             // 使用 TypeORM 的 queryBuilder 来构建查询
-            const query = this.workInfoRepository.createQueryBuilder('workInfo')
-                .where('workInfo.workUserId = :workUserId', { workUserId })
-                .orderBy(`workInfo.${prop}`, direction)
+            const query = this.workInfoRepository.createQueryBuilder('workInfo');
+
+            // 对于 'completed' 状态下的记录，添加 workUserId 的条件
+            query.where('workInfo.workUserId = :workUserId', { workUserId })
+                .andWhere('(workInfo.workStatus = :completed AND workInfo.workResult IS NOT NULL AND JSON_LENGTH(workInfo.workResult) > 0 AND workInfo.isPreview = :isPreviewFalse)',
+                    { completed: 'completed', isPreviewFalse: false, workUserId });
+
+            // 对于 'failed' 状态下的记录，同样添加 workUserId 的条件
+            query.orWhere('(workInfo.workStatus = :failed AND workInfo.workResult IS NOT NULL AND workInfo.workUserId = :workUserId)',
+                { failed: 'failed', workUserId });
+
+            query.orderBy(`workInfo.${prop}`, direction)
                 .skip(skip)
                 .take(pageSize);
 
             const [workList, total] = await query.getManyAndCount(); // 执行查询并获取结果及总数
+
+            // 打印workList
+            console.log('workList: ', workList);
 
             const pageCount = Math.ceil(total / pageSize); // 计算总页数
 

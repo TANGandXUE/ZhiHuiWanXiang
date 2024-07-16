@@ -217,8 +217,11 @@ export class DatatransService {
                         engine: "imagemagick",
                         input: "importFile",
                         fit: "max",
+                        "width": 3000,
+                        "height": 3000,
+                        timeout: 60,
                         strip: false,
-                        quality: params.quality,
+                        // quality: params.quality,
                     },
                     exportFile: {
                         operation: "export/url",
@@ -341,7 +344,7 @@ export class DatatransService {
 
             // 删除本地文件
             await this.deleteFileInfos(fileInfos);
-            
+
             return { isSuccess: true, message: '图片压缩成功', data: return_fileInfos_url };
 
         } catch (e) {
@@ -374,6 +377,74 @@ export class DatatransService {
 
                 fileInfo.fileName = outputFileName;
                 fileInfo.filePath = outputFilePath;
+            });
+
+            await Promise.all(startCompress);
+            console.log("fileInfos:", fileInfos);
+            const return_fileInfos_url = await this.ossService.uploadFiles(fileInfos);
+
+            // 删除本地文件
+            await this.deleteFileInfos(fileInfos);
+
+            return { isSuccess: true, message: '图片压缩成功', data: return_fileInfos_url };
+
+        } catch (e) {
+            return { isSuccess: false, message: `图片压缩错误：${e}`, data: [] };
+        }
+    }
+
+    // JPEG图像压缩, 根据指定最大像素
+    async imgCompressByMaxPixels(fileInfos_url: Array<{ fileName: string, fileURL: string }>, maxPixels: number) {
+
+        console.log(`fileInfos_url: ${JSON.stringify(fileInfos_url)}, maxPixels: ${maxPixels}`);
+
+        try {
+            // 将url转换为本地文件
+            const fileInfos = await this.urlToLocal(fileInfos_url, 'jpg');
+            console.log(`fileInfos: ${JSON.stringify(fileInfos)}`);
+
+            const startCompress = fileInfos.map(async (fileInfo) => {
+
+                // 分割路径并给出新路径
+                const { dir, name, ext } = path.parse(fileInfo.filePath);
+                const outputFileName = `${name}_preview${ext}`;
+                const outputFilePath = path.join(dir, outputFileName);
+
+                // 获取图片长宽高，然后根据最大像素，计算分配到的长度和宽度
+                // 获取图片长宽高
+                const metadata = await sharp(fileInfo.filePath).metadata();
+                const { width, height } = metadata;
+                let maxWidth: number = 0;
+                let maxHeight: number = 0;
+
+                // 计算原图片的像素数
+                const originalPixels = width * height;
+
+                // 根据最大像素，计算分配到的长度和宽度
+                let scale = 1;
+                if (originalPixels > maxPixels) {
+                    // 计算缩放比例
+                    scale = Math.sqrt(maxPixels / originalPixels);
+                    // 应用缩放比例
+                    maxWidth = Math.floor(width * scale);
+                    maxHeight = Math.floor(height * scale);
+                    console.log(`Original dimensions: ${width}x${height}, New dimensions: ${maxWidth}x${maxHeight}`);
+                    console.log(`maxWidth: ${maxWidth}, maxHeight: ${maxHeight}`);
+
+                    // 使用resize方法按计算出的新宽度和高度压缩，避免图片放大
+                    await sharp(fileInfo.filePath)
+                        .resize(maxWidth, maxHeight, { fit: 'inside', withoutEnlargement: true })
+                        .jpeg()
+                        .toFile(outputFilePath);
+                    fileInfo.fileName = outputFileName;
+                    fileInfo.filePath = outputFilePath;
+                } else {
+                    // 如果图片像素数小于等于maxPixels，直接保存原图
+                    fileInfo.fileName = outputFileName;
+                    fileInfo.filePath = fileInfo.filePath;
+                }
+
+
             });
 
             await Promise.all(startCompress);
